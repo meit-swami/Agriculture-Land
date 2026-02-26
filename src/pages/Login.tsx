@@ -21,7 +21,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim().toLowerCase(), password);
     setLoading(false);
     if (error) {
       toast.error(t('लॉगिन विफल', 'Login failed'), { description: error.message });
