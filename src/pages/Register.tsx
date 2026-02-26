@@ -23,14 +23,24 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!form.state) {
+      toast.error(t('कृपया राज्य चुनें', 'Please select state'));
+      return;
+    }
+
     if (form.password.length < 6) {
       toast.error(t('पासवर्ड कम से कम 6 अक्षर का होना चाहिए', 'Password must be at least 6 characters'));
       return;
     }
-    setLoading(true);
-    const { error } = await signUp(form.email, form.password, {
+
+    const normalizedEmail = form.email.trim().toLowerCase();
+
+    const { error } = await signUp(normalizedEmail, form.password, {
       full_name: form.fullName,
       phone: form.phone,
+      state: form.state,
+      district: form.district,
       role: form.role,
     });
     setLoading(false);
@@ -85,7 +95,7 @@ const Register = () => {
               </div>
               <div>
                 <Label>{t('जिला', 'District')}</Label>
-                <Input value={form.district} onChange={(e) => update('district', e.target.value)} placeholder={t('जिला लिखें', 'Enter district')} />
+                <Input value={form.district} onChange={(e) => update('district', e.target.value)} required placeholder={t('जिला लिखें', 'Enter district')} />
               </div>
               <div>
                 <Label>{t('भूमिका', 'Role')}</Label>
@@ -98,7 +108,9 @@ const Register = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading} onClick={(e) => {
+                if ((e.currentTarget as HTMLButtonElement).type !== 'submit') return;
+              }}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 {loading ? t('रजिस्टर हो रहा है...', 'Registering...') : t('रजिस्टर करें', 'Register')}
               </Button>

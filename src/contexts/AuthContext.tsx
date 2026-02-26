@@ -30,10 +30,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
-    if (data) setProfile({ full_name: data.full_name, phone: data.phone, state: data.state, district: data.district });
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId).single();
+    if (profileData) {
+      setProfile({
+        full_name: profileData.full_name,
+        phone: profileData.phone,
+        state: profileData.state,
+        district: profileData.district,
+      });
+    }
+
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
     if (roleData) setRole(roleData.role);
   };
 
@@ -62,14 +79,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, metadata: Record<string, string>) => {
     const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: metadata }
+      email,
+      password,
+      options: {
+        data: metadata,
+        emailRedirectTo: window.location.origin,
+      },
     });
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return { error };
   };
 
