@@ -19,26 +19,26 @@ const Index = () => {
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-primary via-primary to-secondary overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-40 h-40 rounded-full bg-accent blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-60 h-60 rounded-full bg-accent blur-3xl" />
+          <div className="absolute top-10 left-10 w-40 h-40 rounded-full bg-accent blur-3xl animate-float" />
+          <div className="absolute bottom-10 right-10 w-60 h-60 rounded-full bg-accent blur-3xl animate-float [animation-delay:1.5s]" />
         </div>
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="max-w-2xl mx-auto text-center text-primary-foreground">
-            <div className="inline-flex items-center gap-2 bg-accent/20 text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 bg-accent/20 text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-6 opacity-0 animate-fade-in [animation-delay:0.1s]">
               <Sprout className="h-4 w-4" />
               {t('भारत का #1 कृषि भूमि मार्केटप्लेस', "India's #1 Agri Land Marketplace")}
             </div>
-            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4">
+            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4 opacity-0 animate-fade-in [animation-delay:0.3s]">
               {t('अपनी सपनों की कृषि भूमि खोजें', 'Find Your Dream Agricultural Land')}
             </h1>
-            <p className="text-lg opacity-90 mb-8">
+            <p className="text-lg opacity-0 animate-fade-in [animation-delay:0.5s] mb-8">
               {t(
                 'सत्यापित भूमि, विश्वसनीय विक्रेता — सीधे मालिक से खरीदें',
                 'Verified lands, trusted sellers — buy directly from owners'
               )}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto opacity-0 animate-slide-up [animation-delay:0.7s]">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -61,8 +61,8 @@ const Index = () => {
             { icon: MapPin, value: '1,200+', hi: 'भूमि लिस्टिंग', en: 'Land Listings' },
             { icon: ShieldCheck, value: '850+', hi: 'सत्यापित भूमि', en: 'Verified Lands' },
             { icon: Users, value: '5,000+', hi: 'सक्रिय उपयोगकर्ता', en: 'Active Users' },
-          ].map((stat) => (
-            <Card key={stat.en} className="text-center shadow-lg border-0 bg-card">
+          ].map((stat, i) => (
+            <Card key={stat.en} className="text-center shadow-lg border-0 bg-card opacity-0 animate-scale-in" style={{ animationDelay: `${0.9 + i * 0.15}s` }}>
               <CardContent className="p-4 md:p-6">
                 <stat.icon className="h-6 w-6 text-primary mx-auto mb-2" />
                 <div className="text-xl md:text-2xl font-bold text-primary">{stat.value}</div>
@@ -75,7 +75,7 @@ const Index = () => {
 
       {/* Featured Properties */}
       <section className="container mx-auto px-4 py-12 md:py-16">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 opacity-0 animate-fade-in [animation-delay:1.2s]">
           <h2 className="text-2xl md:text-3xl font-bold">
             {t('सत्यापित भूमि', 'Verified Properties')}
           </h2>
@@ -85,8 +85,8 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {featured.map((property) => (
-            <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow group cursor-pointer border-0 shadow-md">
+          {featured.map((property, i) => (
+            <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-all group cursor-pointer border-0 shadow-md opacity-0 animate-slide-up hover:-translate-y-1" style={{ animationDelay: `${1.3 + i * 0.12}s` }}>
               <div className="relative h-44 overflow-hidden">
                 <img
                   src={property.images[0]}
@@ -122,7 +122,7 @@ const Index = () => {
       {/* How it works */}
       <section className="bg-muted py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 opacity-0 animate-fade-in [animation-delay:0.2s]">
             {t('कैसे काम करता है?', 'How It Works?')}
           </h2>
 
@@ -150,7 +150,7 @@ const Index = () => {
                 descEn: 'Meet the owner or agent directly and close the deal',
               },
             ].map((step, i) => (
-              <Card key={step.en} className="text-center border-0 shadow-md">
+              <Card key={step.en} className="text-center border-0 shadow-md opacity-0 animate-fade-in hover:-translate-y-1 transition-transform" style={{ animationDelay: `${0.4 + i * 0.2}s` }}>
                 <CardContent className="p-6">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <step.icon className="h-7 w-7 text-primary" />
@@ -169,7 +169,7 @@ const Index = () => {
 
       {/* User Roles */}
       <section className="container mx-auto px-4 py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 opacity-0 animate-fade-in [animation-delay:0.2s]">
           {t('आपकी भूमिका?', 'Your Role?')}
         </h2>
 
@@ -199,8 +199,8 @@ const Index = () => {
               descEn: 'List multiple lands, become a verified agent',
               color: 'bg-accent',
             },
-          ].map((role) => (
-            <Card key={role.en} className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-shadow cursor-pointer">
+          ].map((role, i) => (
+            <Card key={role.en} className="overflow-hidden border-0 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer opacity-0 animate-slide-up" style={{ animationDelay: `${0.4 + i * 0.15}s` }}>
               <div className={`${role.color} p-4 flex items-center gap-3`}>
                 <role.icon className="h-8 w-8 text-primary-foreground" />
                 <h3 className="text-xl font-bold text-primary-foreground">{t(role.hi, role.en)}</h3>
@@ -219,7 +219,7 @@ const Index = () => {
       {/* Trust */}
       <section className="bg-primary text-primary-foreground py-10">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-4">
+          <h2 className="text-2xl font-bold mb-4 opacity-0 animate-fade-in [animation-delay:0.2s]">
             {t('क्यों चुनें कृषिभूमि भारत?', 'Why Choose KrishiBhumi India?')}
           </h2>
           <div className="flex flex-wrap justify-center gap-6 mt-6">
@@ -228,8 +228,8 @@ const Index = () => {
               { hi: 'सीधे मालिक से संपर्क', en: 'Direct Owner Contact' },
               { hi: 'पटवारी रिपोर्ट उपलब्ध', en: 'Patwari Report Available' },
               { hi: 'सुरक्षित लेनदेन', en: 'Secure Transactions' },
-            ].map((badge) => (
-              <div key={badge.en} className="flex items-center gap-2 bg-primary-foreground/10 px-4 py-2 rounded-full text-sm">
+            ].map((badge, i) => (
+              <div key={badge.en} className="flex items-center gap-2 bg-primary-foreground/10 px-4 py-2 rounded-full text-sm opacity-0 animate-scale-in" style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
                 <ShieldCheck className="h-4 w-4 text-accent" />
                 {t(badge.hi, badge.en)}
               </div>
