@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react';
+import NotificationBell from '@/components/NotificationBell';
 
 const navItems = [
   { path: '/', hi: 'होम', en: 'Home', icon: Home },
@@ -23,10 +24,8 @@ const BottomNav = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[56px] ${
-                active
-                  ? 'text-primary'
-                  : 'text-muted-foreground'
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-[48px] ${
+                active ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               <item.icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : ''}`} />
@@ -36,6 +35,12 @@ const BottomNav = () => {
             </Link>
           );
         })}
+        <div className="flex flex-col items-center gap-0.5 px-2 py-1.5 min-w-[48px]">
+          <NotificationBell />
+          <span className="text-[10px] font-medium leading-tight text-muted-foreground">
+            {t('सूचना', 'Alerts')}
+          </span>
+        </div>
       </div>
     </nav>
   );
