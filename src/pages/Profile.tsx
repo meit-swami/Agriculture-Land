@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, MapPin, Phone, Mail, LogOut, ShieldCheck, Crown, Settings } from 'lucide-react';
+import { User, MapPin, Phone, Mail, LogOut, ShieldCheck, Crown, Settings, LayoutDashboard, Home as HomeIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -85,6 +85,14 @@ const Profile = () => {
 
         {/* Quick links */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <Link to="/my-properties">
+            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><HomeIcon className="h-5 w-5 text-primary" /></div>
+                <span className="font-semibold">{t('मेरी भूमि', 'My Properties')}</span>
+              </CardContent>
+            </Card>
+          </Link>
           <Link to="/post">
             <Card className="border-0 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
               <CardContent className="p-5 flex items-center gap-3">
@@ -101,6 +109,16 @@ const Profile = () => {
               </CardContent>
             </Card>
           </Link>
+          {role === 'admin' && (
+            <Link to="/admin">
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow cursor-pointer ring-2 ring-primary">
+                <CardContent className="p-5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><LayoutDashboard className="h-5 w-5 text-primary" /></div>
+                  <span className="font-semibold">{t('एडमिन डैशबोर्ड', 'Admin Dashboard')}</span>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
         </div>
 
         <Button variant="destructive" className="w-full" onClick={handleLogout}>
