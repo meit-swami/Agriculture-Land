@@ -183,7 +183,7 @@ const Index = () => {
           {t('आपकी भूमिका?', 'Your Role?')}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
           {[
             {
               icon: TrendingUp,
@@ -192,6 +192,7 @@ const Index = () => {
               descHi: 'सत्यापित भूमि खोजें, मालिक से सीधे बात करें',
               descEn: 'Find verified land, talk directly to owners',
               color: 'bg-primary',
+              link: '/buyer',
             },
             {
               icon: UserCheck,
@@ -200,6 +201,7 @@ const Index = () => {
               descHi: 'अपनी भूमि लिस्ट करें, खरीदार ढूंढें',
               descEn: 'List your land, find buyers',
               color: 'bg-secondary',
+              link: '/register',
             },
             {
               icon: Users,
@@ -208,6 +210,16 @@ const Index = () => {
               descHi: 'एक से अधिक भूमि लिस्ट करें, सत्यापित एजेंट बनें',
               descEn: 'List multiple lands, become a verified agent',
               color: 'bg-accent',
+              link: '/register',
+            },
+            {
+              icon: Handshake,
+              hi: 'हमारी टीम बनें',
+              en: 'Become Our Team',
+              descHi: 'हमारे साथ जुड़ें, कृषि भूमि बाज़ार में काम करें',
+              descEn: 'Join us, work in the agri land market',
+              color: 'bg-primary',
+              link: '/join-team',
             },
           ].map((role, i) => (
             <Card key={role.en} className="overflow-hidden border-0 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer opacity-0 animate-slide-up" style={{ animationDelay: `${0.4 + i * 0.15}s` }}>
@@ -217,7 +229,7 @@ const Index = () => {
               </div>
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">{t(role.descHi, role.descEn)}</p>
-              <Link to={role.en === 'Buyer' ? '/buyer' : '/register'}>
+              <Link to={role.link}>
                 <Button variant="link" className="mt-2 p-0 text-primary font-semibold">
                   {t('शुरू करें →', 'Get Started →')}
                 </Button>
