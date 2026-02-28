@@ -1,24 +1,32 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { mockProperties, formatPrice, formatPriceEn } from '@/data/mockProperties';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, CheckCircle2, Clock, Phone, User, Ruler, Tag, FileText, Heart, CalendarDays, Loader2 } from 'lucide-react';
+import { MapPin, CheckCircle2, Clock, Phone, User, Ruler, Tag, FileText, Heart, CalendarDays, Loader2, Crown, Link as LinkIcon, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const PropertyDetail = () => {
   const { id } = useParams();
   const { t, lang } = useLanguage();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
 
   const [dbProperty, setDbProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [interestLoading, setInterestLoading] = useState(false);
+  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
+  const [privateLink, setPrivateLink] = useState<string | null>(null);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
 
-  // Try mock first, then DB
   const mockProperty = mockProperties.find((p) => p.id === id);
 
   useEffect(() => {
@@ -34,6 +42,103 @@ const PropertyDetail = () => {
     fetchProperty();
   }, [id, mockProperty]);
 
+  const handleShowInterest = async () => {
+    if (!user) {
+      toast.error(t('पहले लॉगिन करें', 'Please login first'));
+      navigate('/login');
+      return;
+    }
+
+    setInterestLoading(true);
+
+    // Check if user has an active premium subscription (buyer premium)
+    const { data: subs } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .eq('plan_type', 'buyer')
+      .eq('plan_tier', 'premium');
+
+    const hasActivePremium = subs && subs.length > 0 && subs.some(s => {
+      if (!s.expires_at) return true;
+      return new Date(s.expires_at) > new Date();
+    });
+
+    if (!hasActivePremium) {
+      setInterestLoading(false);
+      setShowSubscriptionPrompt(true);
+      return;
+    }
+
+    // Generate private link
+    const propertyId = mockProperty ? mockProperty.id : dbProperty?.id;
+    if (!propertyId) {
+      setInterestLoading(false);
+      toast.error(t('प्रॉपर्टी नहीं मिली', 'Property not found'));
+      return;
+    }
+
+    // Check if link already exists
+    const { data: existingLink } = await supabase
+      .from('private_links')
+      .select('token')
+      .eq('property_id', propertyId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingLink) {
+      const link = `${window.location.origin}/p/${existingLink.token}`;
+      setPrivateLink(link);
+      setShowLinkDialog(true);
+      setInterestLoading(false);
+      return;
+    }
+
+    // Get user's phone from profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const { data: newLink, error } = await supabase
+      .from('private_links')
+      .insert({
+        property_id: propertyId,
+        user_id: user.id,
+        phone_number: profile?.phone || '',
+      })
+      .select('token')
+      .single();
+
+    setInterestLoading(false);
+
+    if (error) {
+      toast.error(t('लिंक बनाने में विफल', 'Failed to create link'), { description: error.message });
+      return;
+    }
+
+    // Also record interest
+    await supabase.from('interests').insert({
+      property_id: propertyId,
+      buyer_id: user.id,
+      type: 'interest',
+    });
+
+    const link = `${window.location.origin}/p/${newLink.token}`;
+    setPrivateLink(link);
+    setShowLinkDialog(true);
+    toast.success(t('🔗 प्राइवेट लिंक बन गया!', '🔗 Private link created!'));
+  };
+
+  const copyLink = () => {
+    if (privateLink) {
+      navigator.clipboard.writeText(privateLink);
+      toast.success(t('लिंक कॉपी हो गया!', 'Link copied!'));
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -44,7 +149,6 @@ const PropertyDetail = () => {
     );
   }
 
-  // Normalize property data from either source
   const property = mockProperty
     ? mockProperty
     : dbProperty
@@ -140,7 +244,6 @@ const PropertyDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Team remarks if any */}
             {'teamRemarks' in property && property.teamRemarks && (
               <Card className="border-0 shadow-md">
                 <CardContent className="p-5">
@@ -150,7 +253,6 @@ const PropertyDetail = () => {
               </Card>
             )}
 
-            {/* Map placeholder */}
             <Card className="border-0 shadow-md">
               <CardContent className="p-5">
                 <h2 className="font-bold text-lg mb-3">{t('स्थान', 'Location')}</h2>
@@ -178,8 +280,16 @@ const PropertyDetail = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Button className="w-full bg-primary text-primary-foreground" onClick={() => toast.success(t('रुचि भेजी गई!', 'Interest sent!'))}>
-                    <Heart className="h-4 w-4 mr-2" />
+                  <Button
+                    className="w-full bg-primary text-primary-foreground"
+                    onClick={handleShowInterest}
+                    disabled={interestLoading}
+                  >
+                    {interestLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Heart className="h-4 w-4 mr-2" />
+                    )}
                     {t('रुचि दिखाएँ', 'Show Interest')}
                   </Button>
                   <Button variant="outline" className="w-full" onClick={() => toast.success(t('मीटिंग अनुरोध भेजा गया!', 'Meeting request sent!'))}>
@@ -192,6 +302,74 @@ const PropertyDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Subscription Prompt Dialog */}
+      <Dialog open={showSubscriptionPrompt} onOpenChange={setShowSubscriptionPrompt}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" />
+              {t('प्रीमियम सब्सक्रिप्शन आवश्यक', 'Premium Subscription Required')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'प्रॉपर्टी की पूरी जानकारी देखने के लिए Buyer Premium (₹99/माह) सब्सक्रिप्शन लें। इसमें आपको प्राइवेट लिंक मिलेगा जो केवल आपके मोबाइल नंबर से खुलेगा।',
+                'Get a Buyer Premium subscription (₹99/mo) to view full property details. You\'ll get a private link that only works with your registered mobile number.'
+              )}
+            </p>
+            <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('असीमित संपर्क', 'Unlimited contacts')}</div>
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('प्राइवेट प्रॉपर्टी लिंक', 'Private property links')}</div>
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('प्राथमिकता सहायता', 'Priority support')}</div>
+            </div>
+            <Button
+              className="w-full bg-primary text-primary-foreground"
+              onClick={() => {
+                setShowSubscriptionPrompt(false);
+                navigate('/subscriptions');
+              }}
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              {t('सब्सक्रिप्शन प्लान देखें', 'View Subscription Plans')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Private Link Dialog */}
+      <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 text-primary" />
+              {t('आपका प्राइवेट लिंक', 'Your Private Link')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'यह लिंक केवल आपके रजिस्टर्ड मोबाइल नंबर से OTP वेरिफिकेशन के बाद खुलेगा। इसमें प्रॉपर्टी की पूरी जानकारी, फोटो, वीडियो और दस्तावेज़ होंगे।',
+                'This link will only open after OTP verification with your registered mobile number. It contains full property details, photos, videos and documents.'
+              )}
+            </p>
+            <div className="bg-muted p-3 rounded-lg flex items-center gap-2">
+              <LinkIcon className="h-4 w-4 text-primary shrink-0" />
+              <code className="text-xs break-all flex-1">{privateLink}</code>
+              <Button size="sm" variant="ghost" onClick={copyLink}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button
+              className="w-full bg-primary text-primary-foreground"
+              onClick={() => window.open(privateLink!, '_blank')}
+            >
+              {t('लिंक खोलें', 'Open Link')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

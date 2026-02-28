@@ -16,6 +16,7 @@ import Register from "./pages/Register";
 import Subscriptions from "./pages/Subscriptions";
 import AdminDashboard from "./pages/AdminDashboard";
 import MyProperties from "./pages/MyProperties";
+import PrivatePropertyView from "./pages/PrivatePropertyView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/my-properties" element={<MyProperties />} />
+              <Route path="/p/:token" element={<PrivatePropertyView />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
