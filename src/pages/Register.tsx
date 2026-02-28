@@ -73,14 +73,6 @@ const Register = () => {
                 <Input value={form.fullName} onChange={(e) => update('fullName', e.target.value)} required placeholder={t('अपना नाम लिखें', 'Enter your name')} />
               </div>
               <div>
-                <Label>{t('ईमेल', 'Email')}</Label>
-                <Input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required placeholder="example@email.com" />
-              </div>
-              <div>
-                <Label>{t('पासवर्ड', 'Password')}</Label>
-                <Input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} required placeholder="••••••••" />
-              </div>
-              <div>
                 <Label>{t('मोबाइल नंबर', 'Mobile Number')}</Label>
                 <Input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} required placeholder="+91 98765 43210" />
               </div>
