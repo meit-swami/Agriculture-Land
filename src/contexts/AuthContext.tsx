@@ -29,6 +29,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<AuthContextType['profile']>(null);
   const [role, setRole] = useState<string | null>(null);
 
+  const authStorageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
+  const authLockKey = `lock:${authStorageKey}`;
+
+  const clearAuthLock = () => {
+    try {
+      localStorage.removeItem(authLockKey);
+    } catch {
+      // ignore localStorage access errors
+    }
+  };
+
+  const clearStaleAuthState = () => {
+    try {
+      localStorage.removeItem(authStorageKey);
+      clearAuthLock();
+    } catch {
+      // ignore localStorage access errors
+    }
+  };
+
   const fetchProfile = async (userId: string) => {
     const { data: profileData } = await supabase
       .from('profiles')
@@ -67,6 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
+    // Clear any orphaned lock key from previous crashed/unmounted sessions
+    clearAuthLock();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -90,16 +113,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    // Clear any stale session before signing in
+    // Reset stale auth artifacts before trying to sign in
+    clearStaleAuthState();
+
+    // Best effort local sign-out (prevents stale in-memory session state)
     try {
-      await supabase.auth.signOut();
-    } catch (_) {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
       // Ignore signOut errors
     }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    if (error && String(error.message).toLowerCase().includes('failed to fetch')) {
+      // Ensure next attempt starts from a clean state
+      clearStaleAuthState();
+    }
+
     return { error };
   };
 
