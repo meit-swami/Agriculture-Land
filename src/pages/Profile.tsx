@@ -1,16 +1,74 @@
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, MapPin, Phone, Mail, LogOut, ShieldCheck, Crown, Settings, LayoutDashboard, Home as HomeIcon } from 'lucide-react';
+import { User, MapPin, Phone, Mail, LogOut, ShieldCheck, Crown, Settings, LayoutDashboard, Home as HomeIcon, Link as LinkIcon, Eye, Copy, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const { t } = useLanguage();
   const { user, profile, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const [privateLinks, setPrivateLinks] = useState<any[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) fetchPrivateLinks();
+  }, [user]);
+
+  const fetchPrivateLinks = async () => {
+    if (!user) return;
+    setLinksLoading(true);
+    const { data: links } = await supabase
+      .from('private_links')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (links && links.length > 0) {
+      // Fetch view counts for each link
+      const linkIds = links.map((l: any) => l.id);
+      const { data: views } = await supabase
+        .from('link_views')
+        .select('link_id')
+        .in('link_id', linkIds);
+
+      const viewCounts: Record<string, number> = {};
+      (views || []).forEach((v: any) => {
+        viewCounts[v.link_id] = (viewCounts[v.link_id] || 0) + 1;
+      });
+
+      // Fetch property titles
+      const propIds = [...new Set(links.map((l: any) => l.property_id))];
+      const { data: props } = await supabase
+        .from('properties')
+        .select('id, title, title_en')
+        .in('id', propIds);
+
+      const propMap: Record<string, any> = {};
+      (props || []).forEach((p: any) => { propMap[p.id] = p; });
+
+      setPrivateLinks(links.map((l: any) => ({
+        ...l,
+        viewCount: viewCounts[l.id] || 0,
+        propertyTitle: propMap[l.property_id]?.title || '',
+        propertyTitleEn: propMap[l.property_id]?.title_en || '',
+      })));
+    } else {
+      setPrivateLinks([]);
+    }
+    setLinksLoading(false);
+  };
+
+  const copyLink = (token: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/p/${token}`);
+    toast.success(t('लिंक कॉपी हो गया!', 'Link copied!'));
+  };
 
   if (!user) {
     return (
@@ -80,6 +138,51 @@ const Profile = () => {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Private Links Section */}
+        <Card className="border-0 shadow-xl mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 text-primary" />
+              {t('मेरे प्राइवेट लिंक', 'My Private Links')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {linksLoading ? (
+              <div className="py-6 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-primary" /></div>
+            ) : privateLinks.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                {t('कोई प्राइवेट लिंक नहीं। किसी भूमि पर "रुचि दिखाएँ" दबाएँ।', 'No private links yet. Click "Show Interest" on a property.')}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {privateLinks.map((link) => (
+                  <div key={link.id} className="bg-muted rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{link.propertyTitle || link.propertyTitleEn}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(link.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <Badge className="bg-primary/10 text-primary shrink-0">
+                        <Eye className="h-3 w-3 mr-1" />
+                        {link.viewCount} {t('व्यू', 'views')}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-[10px] bg-background p-1.5 rounded flex-1 truncate">/p/{link.token.slice(0, 16)}...</code>
+                      <Button size="sm" variant="ghost" onClick={() => copyLink(link.token)}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => window.open(`/p/${link.token}`, '_blank')}>
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
