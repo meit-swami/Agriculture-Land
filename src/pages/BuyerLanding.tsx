@@ -22,7 +22,6 @@ const BuyerLanding = () => {
   const { toast } = useToast();
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
 
-  const [started, setStarted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('browse');
 
   // Query form state
@@ -87,68 +86,6 @@ const BuyerLanding = () => {
     toast({ title: t('आपकी क्वेरी भेज दी गई!', 'Your query has been submitted!'), description: t('हम जल्द संपर्क करेंगे', 'We will contact you soon') });
     setForm({ name: '', phone: '', state: '', budgetMin: '', budgetMax: '', areaMin: '', message: '' });
   };
-
-  const startWith = (tab: string) => {
-    setActiveTab(tab);
-    setStarted(true);
-  };
-
-  // ─── Initial Choice Screen ───
-  if (!started) {
-    return (
-      <AppLayout>
-        <div className="container mx-auto px-4 py-10 md:py-20">
-          <div className="text-center mb-10">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{t('खरीदार पोर्टल', 'Buyer Portal')}</h1>
-            <p className="text-muted-foreground">{t('अपनी ज़रूरत चुनें', 'Choose what you need')}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            {/* Browse Card */}
-            <Card
-              className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 border-0 shadow-md overflow-hidden"
-              onClick={() => startWith('browse')}
-            >
-              <div className="bg-primary p-4">
-                <div className="flex items-center gap-2 text-primary-foreground">
-                  <TrendingUp className="h-6 w-6" />
-                  <h2 className="text-xl font-bold">{t('खरीदार', 'Buyer')}</h2>
-                </div>
-              </div>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground mb-3">
-                  {t('सत्यापित भूमि खोजें, मालिक से सीधे बात करें', 'Find verified land, talk directly to owners')}
-                </p>
-                <span className="text-primary font-semibold text-sm inline-flex items-center gap-1">
-                  {t('शुरू करें', 'Get Started')} →
-                </span>
-              </CardContent>
-            </Card>
-
-            {/* Custom Requirement Card */}
-            <Card
-              className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 border-0 shadow-md overflow-hidden"
-              onClick={() => startWith('custom')}
-            >
-              <div className="bg-[hsl(var(--muted-foreground)/0.5)] p-4">
-                <div className="flex items-center gap-2 text-primary-foreground">
-                  <Users className="h-6 w-6" />
-                  <h2 className="text-xl font-bold">{t('विक्रेता', 'Seller')}</h2>
-                </div>
-              </div>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground mb-3">
-                  {t('अपनी भूमि लिस्ट करें, खरीदार ढूंढें', 'List your land, find buyers')}
-                </p>
-                <span className="text-primary font-semibold text-sm inline-flex items-center gap-1">
-                  {t('शुरू करें', 'Get Started')} →
-                </span>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
 
   // ─── Tabs View ───
   return (
