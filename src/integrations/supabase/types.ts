@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      buyer_queries: {
+        Row: {
+          area_min: number | null
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          id: string
+          message: string | null
+          name: string
+          phone: string
+          preferred_state: string | null
+        }
+        Insert: {
+          area_min?: number | null
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          name: string
+          phone: string
+          preferred_state?: string | null
+        }
+        Update: {
+          area_min?: number | null
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string
+          preferred_state?: string | null
+        }
+        Relationships: []
+      }
       interests: {
         Row: {
           buyer_id: string
