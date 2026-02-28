@@ -1,18 +1,78 @@
 import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { mockProperties, formatPrice, formatPriceEn } from '@/data/mockProperties';
-import { MapPin, CheckCircle2, Clock, Phone, User, Ruler, Tag, FileText, Heart, CalendarDays } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { MapPin, CheckCircle2, Clock, Phone, User, Ruler, Tag, FileText, Heart, CalendarDays, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PropertyDetail = () => {
   const { id } = useParams();
   const { t, lang } = useLanguage();
-  const property = mockProperties.find((p) => p.id === id);
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
+
+  const [dbProperty, setDbProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Try mock first, then DB
+  const mockProperty = mockProperties.find((p) => p.id === id);
+
+  useEffect(() => {
+    if (mockProperty) {
+      setLoading(false);
+      return;
+    }
+    const fetchProperty = async () => {
+      const { data } = await supabase.from('properties').select('*').eq('id', id!).maybeSingle();
+      setDbProperty(data);
+      setLoading(false);
+    };
+    fetchProperty();
+  }, [id, mockProperty]);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto px-4 py-20 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Normalize property data from either source
+  const property = mockProperty
+    ? mockProperty
+    : dbProperty
+    ? {
+        id: dbProperty.id,
+        title: dbProperty.title,
+        titleEn: dbProperty.title_en,
+        state: dbProperty.state,
+        district: dbProperty.district,
+        tehsil: dbProperty.tehsil,
+        village: dbProperty.village,
+        landType: dbProperty.land_type,
+        category: dbProperty.category,
+        area: dbProperty.area,
+        areaUnit: dbProperty.area_unit,
+        khasraNumber: dbProperty.khasra_number,
+        askingPrice: dbProperty.asking_price,
+        negotiable: dbProperty.negotiable,
+        ownerType: dbProperty.owner_type,
+        ownerName: dbProperty.owner_name,
+        ownerPhone: dbProperty.owner_phone,
+        images: dbProperty.images || [],
+        verified: dbProperty.verified,
+        verificationStatus: dbProperty.verification_status,
+        postedDate: new Date(dbProperty.created_at).toLocaleDateString(),
+        teamRemarks: dbProperty.team_remarks,
+      }
+    : null;
 
   if (!property) {
     return (
@@ -28,9 +88,11 @@ const PropertyDetail = () => {
     <AppLayout>
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Image */}
-        <div className="rounded-xl overflow-hidden mb-6 h-64 md:h-96">
-          <img src={property.images[0]} alt={lang === 'hi' ? property.title : property.titleEn} className="w-full h-full object-cover" />
-        </div>
+        {property.images?.[0] && (
+          <div className="rounded-xl overflow-hidden mb-6 h-64 md:h-96">
+            <img src={property.images[0]} alt={lang === 'hi' ? property.title : property.titleEn} className="w-full h-full object-cover" />
+          </div>
+        )}
 
         {/* Title & badge */}
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
@@ -77,6 +139,16 @@ const PropertyDetail = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Team remarks if any */}
+            {'teamRemarks' in property && property.teamRemarks && (
+              <Card className="border-0 shadow-md">
+                <CardContent className="p-5">
+                  <h2 className="font-bold text-lg mb-2">{t('टीम रिमार्क्स', 'Team Remarks')}</h2>
+                  <p className="text-sm bg-muted p-3 rounded">{property.teamRemarks}</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Map placeholder */}
             <Card className="border-0 shadow-md">
