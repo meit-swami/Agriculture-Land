@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import {
   ShieldCheck, Users, BarChart3, CheckCircle2, Clock, XCircle, MapPin, Eye,
   Bell, Trash2, Edit, Crown, Home, Send, Image, Video, FileText, ExternalLink, Loader2,
-  Link as LinkIcon, Monitor, Globe, Activity
+  Link as LinkIcon, Monitor, Globe, Activity, MessageSquare, Phone
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -30,7 +30,8 @@ const AdminDashboard = () => {
   const [roles, setRoles] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [privateLinksData, setPrivateLinksData] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, users: 0, subs: 0, links: 0 });
+  const [buyerQueries, setBuyerQueries] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, users: 0, subs: 0, links: 0, leads: 0 });
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [viewProperty, setViewProperty] = useState<any>(null);
@@ -45,18 +46,20 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [propRes, profileRes, roleRes, subRes, linksRes] = await Promise.all([
+    const [propRes, profileRes, roleRes, subRes, linksRes, queriesRes] = await Promise.all([
       supabase.from('properties').select('*').order('created_at', { ascending: false }),
       supabase.from('profiles').select('*'),
       supabase.from('user_roles').select('*'),
       supabase.from('subscriptions' as any).select('*').order('created_at', { ascending: false }),
       supabase.from('private_links').select('*').order('created_at', { ascending: false }),
+      supabase.from('buyer_queries').select('*').order('created_at', { ascending: false }),
     ]);
     const props = propRes.data || [];
     const profs = profileRes.data || [];
     const rls = roleRes.data || [];
     const subs = (subRes.data || []) as any[];
     const links = (linksRes.data || []) as any[];
+    const queries = (queriesRes.data || []) as any[];
 
     // Fetch all link views
     let linkViews: any[] = [];
@@ -88,6 +91,7 @@ const AdminDashboard = () => {
     setRoles(rls);
     setSubscriptions(subs);
     setPrivateLinksData(enrichedLinks);
+    setBuyerQueries(queries);
     setStats({
       total: props.length,
       pending: props.filter((p) => p.verification_status === 'pending').length,
@@ -96,6 +100,7 @@ const AdminDashboard = () => {
       users: profs.length,
       subs: subs.length,
       links: links.length,
+      leads: queries.length,
     });
     setLoading(false);
   };
@@ -252,7 +257,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
           {[
             { label: t('कुल भूमि', 'Total'), value: stats.total, icon: BarChart3 },
             { label: t('लंबित', 'Pending'), value: stats.pending, icon: Clock },
@@ -261,6 +266,7 @@ const AdminDashboard = () => {
             { label: t('यूज़र', 'Users'), value: stats.users, icon: Users },
             { label: t('सदस्यता', 'Subs'), value: stats.subs, icon: Crown },
             { label: t('प्राइवेट लिंक', 'Links'), value: stats.links, icon: LinkIcon },
+            { label: t('लीड्स', 'Leads'), value: stats.leads, icon: MessageSquare },
           ].map((s) => (
             <Card key={s.label} className="border-0 shadow-md">
               <CardContent className="p-3 text-center">
@@ -278,6 +284,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="users">{t('यूज़र', 'Users')}</TabsTrigger>
             <TabsTrigger value="subscriptions">{t('सदस्यता', 'Subscriptions')}</TabsTrigger>
             <TabsTrigger value="analytics">{t('लिंक एनालिटिक्स', 'Link Analytics')}</TabsTrigger>
+            <TabsTrigger value="leads">{t('लीड्स', 'Leads')} ({buyerQueries.length})</TabsTrigger>
           </TabsList>
 
           {/* ─── Properties Tab ─── */}
@@ -453,6 +460,63 @@ const AdminDashboard = () => {
                           {t('अभी तक कोई व्यू नहीं', 'No views yet')}
                         </p>
                       )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Buyer Leads Tab ─── */}
+          <TabsContent value="leads">
+            {buyerQueries.length === 0 ? (
+              <p className="text-center text-muted-foreground py-10">{t('कोई लीड नहीं', 'No leads yet')}</p>
+            ) : (
+              <div className="space-y-3">
+                {buyerQueries.map((q: any) => (
+                  <Card key={q.id} className="border-0 shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="font-semibold flex items-center gap-2">
+                            {q.name}
+                            <a
+                              href={`https://wa.me/91${encodeURIComponent(q.phone)}?text=${encodeURIComponent(`Hi ${q.name}, regarding your land query on KrishiBhumi India`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full hover:bg-primary/20"
+                            >
+                              <Phone className="h-3 w-3" />
+                              WhatsApp
+                            </a>
+                          </p>
+                          <p className="text-sm text-muted-foreground">{q.phone}</p>
+                          {q.preferred_state && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <MapPin className="h-3 w-3 inline mr-1" />
+                              {t('राज्य', 'State')}: {q.preferred_state}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-1.5">
+                            {q.budget_min > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {t('बजट', 'Budget')}: ₹{Number(q.budget_min).toLocaleString()} — ₹{Number(q.budget_max).toLocaleString()}
+                              </Badge>
+                            )}
+                            {q.area_min > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {t('क्षेत्रफल', 'Area')}: {q.area_min}+ {t('बीघा', 'Bigha')}
+                              </Badge>
+                            )}
+                          </div>
+                          {q.message && (
+                            <p className="text-sm mt-2 bg-muted p-2 rounded">{q.message}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground mt-1.5">
+                            {new Date(q.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
