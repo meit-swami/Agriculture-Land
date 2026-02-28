@@ -46,6 +46,44 @@ export type Database = {
           },
         ]
       }
+      link_views: {
+        Row: {
+          device_info: string | null
+          id: string
+          ip_address: string | null
+          link_id: string
+          location_info: string | null
+          user_agent: string | null
+          viewed_at: string
+        }
+        Insert: {
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          link_id: string
+          location_info?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          link_id?: string
+          location_info?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_views_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "private_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -116,6 +154,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      private_links: {
+        Row: {
+          created_at: string
+          id: string
+          phone_number: string
+          property_id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone_number?: string
+          property_id: string
+          token?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone_number?: string
+          property_id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_links_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
