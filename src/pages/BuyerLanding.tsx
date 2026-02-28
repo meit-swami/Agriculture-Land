@@ -29,6 +29,7 @@ const BuyerLanding = () => {
   const [form, setForm] = useState({
     name: '', phone: '', state: '', budgetMin: '', budgetMax: '', areaMin: '', message: '',
   });
+  const [formUnit, setFormUnit] = useState<'bigha' | 'acre'>('bigha');
   const [submitting, setSubmitting] = useState(false);
 
   // Filter state
@@ -86,13 +87,17 @@ const BuyerLanding = () => {
       return;
     }
     setSubmitting(true);
+    // Convert to bigha for storage if user selected acre
+    const areaVal = form.areaMin ? Number(form.areaMin) : 0;
+    const budgetMinVal = form.budgetMin ? Number(form.budgetMin) : 0;
+    const budgetMaxVal = form.budgetMax ? Number(form.budgetMax) : 0;
     const { error } = await supabase.from('buyer_queries').insert({
       name: form.name.trim().slice(0, 100),
       phone: form.phone.trim(),
       preferred_state: form.state || '',
-      budget_min: form.budgetMin ? Number(form.budgetMin) : 0,
-      budget_max: form.budgetMax ? Number(form.budgetMax) : 0,
-      area_min: form.areaMin ? Number(form.areaMin) : 0,
+      budget_min: formUnit === 'acre' ? Math.round(budgetMinVal / BIGHA_PER_ACRE) : budgetMinVal,
+      budget_max: formUnit === 'acre' ? Math.round(budgetMaxVal / BIGHA_PER_ACRE) : budgetMaxVal,
+      area_min: formUnit === 'acre' ? Math.round(areaVal * BIGHA_PER_ACRE) : areaVal,
       message: form.message.trim().slice(0, 500),
     });
     setSubmitting(false);
@@ -332,17 +337,71 @@ const BuyerLanding = () => {
                       <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Ruler className="h-3 w-3" />{t('न्यूनतम क्षेत्रफल (बीघा)', 'Min Area (Bigha)')}</label>
-                    <Input type="number" placeholder="5" value={form.areaMin} onChange={(e) => setForm({ ...form, areaMin: e.target.value })} min={0} />
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('इकाई चुनें', 'Select Unit')}</label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="formUnit"
+                          checked={formUnit === 'bigha'}
+                          onChange={() => {
+                            if (formUnit === 'acre') {
+                              setForm(f => ({
+                                ...f,
+                                areaMin: f.areaMin ? String(Math.round(Number(f.areaMin) * BIGHA_PER_ACRE)) : '',
+                                budgetMin: f.budgetMin ? String(Math.round(Number(f.budgetMin) / BIGHA_PER_ACRE)) : '',
+                                budgetMax: f.budgetMax ? String(Math.round(Number(f.budgetMax) / BIGHA_PER_ACRE)) : '',
+                              }));
+                            }
+                            setFormUnit('bigha');
+                          }}
+                          className="accent-primary"
+                        />
+                        {t('बीघा', 'Bigha')}
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="formUnit"
+                          checked={formUnit === 'acre'}
+                          onChange={() => {
+                            if (formUnit === 'bigha') {
+                              setForm(f => ({
+                                ...f,
+                                areaMin: f.areaMin ? String(Math.round(Number(f.areaMin) / BIGHA_PER_ACRE)) : '',
+                                budgetMin: f.budgetMin ? String(Math.round(Number(f.budgetMin) * BIGHA_PER_ACRE)) : '',
+                                budgetMax: f.budgetMax ? String(Math.round(Number(f.budgetMax) * BIGHA_PER_ACRE)) : '',
+                              }));
+                            }
+                            setFormUnit('acre');
+                          }}
+                          className="accent-primary"
+                        />
+                        {t('एकड़', 'Acre')}
+                      </label>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><IndianRupee className="h-3 w-3" />{t('न्यूनतम बजट', 'Min Budget (₹)')}</label>
-                    <Input type="number" placeholder="500000" value={form.budgetMin} onChange={(e) => setForm({ ...form, budgetMin: e.target.value })} min={0} />
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Ruler className="h-3 w-3" />
+                      {formUnit === 'bigha' ? t('न्यूनतम क्षेत्रफल (बीघा)', 'Min Area (Bigha)') : t('न्यूनतम क्षेत्रफल (एकड़)', 'Min Area (Acre)')}
+                    </label>
+                    <Input type="number" placeholder={formUnit === 'bigha' ? '5' : '1'} value={form.areaMin} onChange={(e) => setForm({ ...form, areaMin: e.target.value })} min={0} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><IndianRupee className="h-3 w-3" />{t('अधिकतम बजट', 'Max Budget (₹)')}</label>
-                    <Input type="number" placeholder="5000000" value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} min={0} />
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {formUnit === 'bigha' ? t('न्यूनतम बजट (₹/बीघा)', 'Min Budget (₹/Bigha)') : t('न्यूनतम बजट (₹/एकड़)', 'Min Budget (₹/Acre)')}
+                    </label>
+                    <Input type="number" placeholder={formUnit === 'bigha' ? '500000' : '2500000'} value={form.budgetMin} onChange={(e) => setForm({ ...form, budgetMin: e.target.value })} min={0} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {formUnit === 'bigha' ? t('अधिकतम बजट (₹/बीघा)', 'Max Budget (₹/Bigha)') : t('अधिकतम बजट (₹/एकड़)', 'Max Budget (₹/Acre)')}
+                    </label>
+                    <Input type="number" placeholder={formUnit === 'bigha' ? '5000000' : '25000000'} value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} min={0} />
                   </div>
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">{t('अतिरिक्त जानकारी', 'Additional Details')}</label>
