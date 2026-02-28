@@ -2,10 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-// In-memory OTP store (for production, use a DB table or SMS service)
 const DUMMY_OTP = '123456'
 
 Deno.serve(async (req) => {
@@ -15,13 +14,13 @@ Deno.serve(async (req) => {
 
   try {
     const { action, phone, otp, token } = await req.json()
+    console.log('verify-otp called:', { action, phone, token: token?.substring(0, 8) })
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     if (action === 'send') {
-      // In production, send real SMS here
       console.log(`OTP for ${phone}: ${DUMMY_OTP}`)
       return new Response(
         JSON.stringify({ success: true, message: 'OTP sent (dummy: 123456)' }),
@@ -37,26 +36,30 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Check if this phone matches the private link owner's profile
-      const { data: link } = await supabase
+      // Get the link by token
+      const { data: link, error: linkError } = await supabase
         .from('private_links')
-        .select('*, properties(*)')
+        .select('*')
         .eq('token', token)
         .maybeSingle()
 
-      if (!link) {
+      console.log('Link lookup:', { found: !!link, error: linkError?.message })
+
+      if (linkError || !link) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Invalid link' }),
+          JSON.stringify({ success: false, error: 'Invalid or expired link' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
       // Get the profile of the link owner to verify phone
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('phone')
         .eq('user_id', link.user_id)
         .maybeSingle()
+
+      console.log('Profile lookup:', { found: !!profile, phone: profile?.phone, error: profileError?.message })
 
       if (!profile || profile.phone !== phone) {
         return new Response(
@@ -64,6 +67,15 @@ Deno.serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
+
+      // Fetch the property separately
+      const { data: property, error: propError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', link.property_id)
+        .maybeSingle()
+
+      console.log('Property lookup:', { found: !!property, error: propError?.message })
 
       // Track the view
       const deviceInfo = req.headers.get('user-agent') || ''
@@ -77,7 +89,7 @@ Deno.serve(async (req) => {
       })
 
       return new Response(
-        JSON.stringify({ success: true, property: link.properties }),
+        JSON.stringify({ success: true, property }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -87,6 +99,7 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
+    console.error('verify-otp error:', err.message)
     return new Response(
       JSON.stringify({ error: err.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
