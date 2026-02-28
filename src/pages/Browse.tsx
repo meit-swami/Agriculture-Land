@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AppLayout from '@/components/layout/AppLayout';
 import Footer from '@/components/layout/Footer';
@@ -9,25 +9,65 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { mockProperties, states, formatPrice, formatPriceEn } from '@/data/mockProperties';
+import { mockProperties, states, formatPrice, formatPriceEn, Property } from '@/data/mockProperties';
+import { supabase } from '@/integrations/supabase/client';
 import { MapPin, CheckCircle2, Clock, Filter, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+// Normalize DB property to match mock Property shape
+const normalizeDbProperty = (p: any): Property & { isDb?: boolean } => ({
+  id: p.id,
+  title: p.title,
+  titleEn: p.title_en,
+  state: p.state,
+  district: p.district,
+  tehsil: p.tehsil,
+  village: p.village,
+  landType: p.land_type,
+  category: p.category,
+  area: p.area,
+  areaUnit: p.area_unit,
+  khasraNumber: p.khasra_number,
+  askingPrice: p.asking_price,
+  negotiable: p.negotiable,
+  ownerType: p.owner_type,
+  ownerName: p.owner_name,
+  ownerPhone: p.owner_phone,
+  verified: p.verified,
+  images: p.images || ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&h=400&fit=crop'],
+  postedDate: new Date(p.created_at).toISOString().split('T')[0],
+  isDb: true,
+});
 
 const Browse = () => {
   const { t, lang } = useLanguage();
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ state: '', verifiedOnly: false, sortBy: 'date' });
+  const [dbProperties, setDbProperties] = useState<(Property & { isDb?: boolean })[]>([]);
+
+  useEffect(() => {
+    const fetchDbProperties = async () => {
+      const { data } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
+      if (data) setDbProperties(data.map(normalizeDbProperty));
+    };
+    fetchDbProperties();
+  }, []);
+
+  // Merge mock + DB properties, DB first
+  const allProperties = useMemo(() => {
+    return [...dbProperties, ...mockProperties];
+  }, [dbProperties]);
 
   const filtered = useMemo(() => {
-    let list = [...mockProperties];
-    if (filters.state) list = list.filter((p) => p.state === filters.state);
+    let list = [...allProperties];
+    if (filters.state && filters.state !== 'all') list = list.filter((p) => p.state === filters.state);
     if (filters.verifiedOnly) list = list.filter((p) => p.verified);
     if (filters.sortBy === 'price-asc') list.sort((a, b) => a.askingPrice - b.askingPrice);
     if (filters.sortBy === 'price-desc') list.sort((a, b) => b.askingPrice - a.askingPrice);
     if (filters.sortBy === 'area') list.sort((a, b) => b.area - a.area);
     return list;
-  }, [filters]);
+  }, [filters, allProperties]);
 
   return (
     <AppLayout>
