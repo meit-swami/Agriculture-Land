@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -12,13 +13,16 @@ import { Link } from 'react-router-dom';
 
 const Index = () => {
   const { t, lang } = useLanguage();
+  const { role } = useAuth();
   const featured = mockProperties.filter((p) => p.verified).slice(0, 4);
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
   const rolesRef = React.useRef<HTMLElement>(null);
+  const propertiesRef = React.useRef<HTMLElement>(null);
 
   React.useEffect(() => {
-    rolesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+    const target = role === 'buyer' ? propertiesRef.current : rolesRef.current;
+    target?.scrollIntoView({ behavior: 'smooth' });
+  }, [role]);
 
   return (
     <AppLayout>
@@ -80,7 +84,7 @@ const Index = () => {
       </section>
 
       {/* Featured Properties */}
-      <section className="container mx-auto px-4 py-12 md:py-16">
+      <section ref={propertiesRef} className="container mx-auto px-4 py-12 md:py-16">
         <div className="flex items-center justify-between mb-6 opacity-0 animate-fade-in [animation-delay:1.2s]">
           <h2 className="text-2xl md:text-3xl font-bold">
             {t('सत्यापित भूमि', 'Verified Properties')}
