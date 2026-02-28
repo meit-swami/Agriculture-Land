@@ -32,17 +32,25 @@ const BuyerLanding = () => {
 
   // Filter state
   const [filterState, setFilterState] = useState('all');
+  const [filterDistrict, setFilterDistrict] = useState('all');
   const [filterLandType, setFilterLandType] = useState('all');
   const [filterBudgetMax, setFilterBudgetMax] = useState('');
+
+  // Derive unique districts from properties (optionally filtered by state)
+  const availableDistricts = useMemo(() => {
+    const source = filterState !== 'all' ? mockProperties.filter((p) => p.state === filterState) : mockProperties;
+    return [...new Set(source.map((p) => p.district))].sort();
+  }, [filterState]);
 
   const filteredProperties = useMemo(() => {
     return mockProperties.filter((p) => {
       if (filterState !== 'all' && p.state !== filterState) return false;
+      if (filterDistrict !== 'all' && p.district !== filterDistrict) return false;
       if (filterLandType !== 'all' && p.landType !== filterLandType) return false;
       if (filterBudgetMax && p.askingPrice > Number(filterBudgetMax)) return false;
       return true;
     });
-  }, [filterState, filterLandType, filterBudgetMax]);
+  }, [filterState, filterDistrict, filterLandType, filterBudgetMax]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,13 +202,23 @@ const BuyerLanding = () => {
 
         {/* Filter Bar */}
         <div className="flex flex-wrap gap-3 mb-6 p-4 bg-muted rounded-xl">
-          <Select value={filterState} onValueChange={setFilterState}>
+          <Select value={filterState} onValueChange={(v) => { setFilterState(v); setFilterDistrict('all'); }}>
             <SelectTrigger className="w-[160px] bg-card">
               <SelectValue placeholder={t('राज्य', 'State')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('सभी राज्य', 'All States')}</SelectItem>
               {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterDistrict} onValueChange={setFilterDistrict}>
+            <SelectTrigger className="w-[160px] bg-card">
+              <SelectValue placeholder={t('जिला', 'District')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('सभी जिले', 'All Districts')}</SelectItem>
+              {availableDistricts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -228,11 +246,11 @@ const BuyerLanding = () => {
             min={0}
           />
 
-          {(filterState !== 'all' || filterLandType !== 'all' || filterBudgetMax) && (
+          {(filterState !== 'all' || filterDistrict !== 'all' || filterLandType !== 'all' || filterBudgetMax) && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setFilterState('all'); setFilterLandType('all'); setFilterBudgetMax(''); }}
+              onClick={() => { setFilterState('all'); setFilterDistrict('all'); setFilterLandType('all'); setFilterBudgetMax(''); }}
               className="text-destructive"
             >
               {t('फ़िल्टर हटाएं', 'Clear Filters')}
