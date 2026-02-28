@@ -106,8 +106,8 @@ const BuyerLanding = () => {
             <Card className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 border-0 shadow-md overflow-hidden" onClick={() => startWith('browse')}>
               <div className="bg-primary p-4">
                 <div className="flex items-center gap-2 text-primary-foreground">
-                  <TrendingUp className="h-6 w-6" />
-                  <h2 className="text-xl font-bold">{t('खरीदार', 'Buyer')}</h2>
+                  <Building2 className="h-6 w-6" />
+                  <h2 className="text-xl font-bold">{t('उपलब्ध भूमि', 'Available Properties')}</h2>
                 </div>
               </div>
               <CardContent className="p-4">
@@ -116,14 +116,14 @@ const BuyerLanding = () => {
               </CardContent>
             </Card>
             <Card className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 border-0 shadow-md overflow-hidden" onClick={() => startWith('custom')}>
-              <div className="bg-muted-foreground/50 p-4">
-                <div className="flex items-center gap-2 text-primary-foreground">
-                  <Users className="h-6 w-6" />
-                  <h2 className="text-xl font-bold">{t('विक्रेता', 'Seller')}</h2>
+              <div className="bg-accent p-4">
+                <div className="flex items-center gap-2 text-accent-foreground">
+                  <ClipboardList className="h-6 w-6" />
+                  <h2 className="text-xl font-bold">{t('अपनी ज़रूरत बताएं', 'Custom Requirement')}</h2>
                 </div>
               </div>
               <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground mb-3">{t('अपनी भूमि लिस्ट करें, खरीदार ढूंढें', 'List your land, find buyers')}</p>
+                <p className="text-sm text-muted-foreground mb-3">{t('फ़ॉर्म भरें, हम आपके लिए ढूंढेंगे', 'Fill form, we find for you')}</p>
                 <span className="text-primary font-semibold text-sm inline-flex items-center gap-1">{t('शुरू करें', 'Get Started')} →</span>
               </CardContent>
             </Card>
