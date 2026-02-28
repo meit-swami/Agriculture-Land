@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import {
   ShieldCheck, Users, BarChart3, CheckCircle2, Clock, XCircle, MapPin, Eye,
   Bell, Trash2, Edit, Crown, Home, Send, Image, Video, FileText, ExternalLink, Loader2,
-  Link as LinkIcon, Monitor, Globe, Activity, MessageSquare, Phone
+  Link as LinkIcon, Monitor, Globe, Activity, MessageSquare, Phone, Handshake
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -31,7 +31,8 @@ const AdminDashboard = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [privateLinksData, setPrivateLinksData] = useState<any[]>([]);
   const [buyerQueries, setBuyerQueries] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, users: 0, subs: 0, links: 0, leads: 0 });
+  const [teamApps, setTeamApps] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, users: 0, subs: 0, links: 0, leads: 0, teamApps: 0 });
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [viewProperty, setViewProperty] = useState<any>(null);
@@ -46,13 +47,14 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [propRes, profileRes, roleRes, subRes, linksRes, queriesRes] = await Promise.all([
+    const [propRes, profileRes, roleRes, subRes, linksRes, queriesRes, teamRes] = await Promise.all([
       supabase.from('properties').select('*').order('created_at', { ascending: false }),
       supabase.from('profiles').select('*'),
       supabase.from('user_roles').select('*'),
       supabase.from('subscriptions' as any).select('*').order('created_at', { ascending: false }),
       supabase.from('private_links').select('*').order('created_at', { ascending: false }),
       supabase.from('buyer_queries').select('*').order('created_at', { ascending: false }),
+      supabase.from('team_applications').select('*').order('created_at', { ascending: false }),
     ]);
     const props = propRes.data || [];
     const profs = profileRes.data || [];
@@ -60,6 +62,7 @@ const AdminDashboard = () => {
     const subs = (subRes.data || []) as any[];
     const links = (linksRes.data || []) as any[];
     const queries = (queriesRes.data || []) as any[];
+    const teams = (teamRes.data || []) as any[];
 
     // Fetch all link views
     let linkViews: any[] = [];
@@ -92,6 +95,7 @@ const AdminDashboard = () => {
     setSubscriptions(subs);
     setPrivateLinksData(enrichedLinks);
     setBuyerQueries(queries);
+    setTeamApps(teams);
     setStats({
       total: props.length,
       pending: props.filter((p) => p.verification_status === 'pending').length,
@@ -101,6 +105,7 @@ const AdminDashboard = () => {
       subs: subs.length,
       links: links.length,
       leads: queries.length,
+      teamApps: teams.length,
     });
     setLoading(false);
   };
@@ -285,6 +290,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="subscriptions">{t('सदस्यता', 'Subscriptions')}</TabsTrigger>
             <TabsTrigger value="analytics">{t('लिंक एनालिटिक्स', 'Link Analytics')}</TabsTrigger>
             <TabsTrigger value="leads">{t('लीड्स', 'Leads')} ({buyerQueries.length})</TabsTrigger>
+            <TabsTrigger value="team">{t('टीम आवेदन', 'Team Apps')} ({teamApps.length})</TabsTrigger>
           </TabsList>
 
           {/* ─── Properties Tab ─── */}
@@ -514,6 +520,58 @@ const AdminDashboard = () => {
                           )}
                           <p className="text-[10px] text-muted-foreground mt-1.5">
                             {new Date(q.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Team Applications Tab ─── */}
+          <TabsContent value="team">
+            {teamApps.length === 0 ? (
+              <p className="text-center text-muted-foreground py-10">{t('कोई टीम आवेदन नहीं', 'No team applications')}</p>
+            ) : (
+              <div className="space-y-3">
+                {teamApps.map((app: any) => (
+                  <Card key={app.id} className="border-0 shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Handshake className="h-4 w-4 text-primary" />
+                            <p className="font-semibold">{app.name}</p>
+                          </div>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />{app.phone}
+                            <a
+                              href={`https://wa.me/91${app.phone}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-primary hover:underline text-xs"
+                            >
+                              WhatsApp
+                            </a>
+                          </p>
+                          {(app.state || app.district) && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <MapPin className="h-3 w-3 inline mr-1" />
+                              {[app.district, app.state].filter(Boolean).join(', ')}
+                            </p>
+                          )}
+                          {app.experience && (
+                            <p className="text-xs mt-1.5">
+                              <span className="font-medium">{t('अनुभव', 'Experience')}:</span> {app.experience}
+                            </p>
+                          )}
+                          {app.message && (
+                            <p className="text-sm mt-2 bg-muted p-2 rounded">{app.message}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground mt-1.5">
+                            {new Date(app.created_at).toLocaleString()}
                           </p>
                         </div>
                       </div>
