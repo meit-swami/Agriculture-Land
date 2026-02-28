@@ -217,7 +217,7 @@ const PropertyDetail = () => {
         <div className="mb-6">
           {property.area > 0 && (
             <div className="text-3xl font-bold text-primary">
-              {priceFmt(Math.round(property.askingPrice / property.area))} <span className="text-lg font-medium">/ {t('बीघा', 'Bigha')}</span>
+              {priceFmt(Math.round(property.askingPrice / property.area))} <span className="text-lg font-bold">/ {t('बीघा', 'Bigha')}</span>
             </div>
           )}
           {property.negotiable && <span className="text-sm font-normal text-muted-foreground">({t('मोलभाव योग्य', 'Negotiable')})</span>}
