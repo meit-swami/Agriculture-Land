@@ -1,10 +1,25 @@
 import { MessageCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const WHATSAPP_NUMBER = '919460804890';
-const MESSAGE = 'Namaste!! Mera name : , looking for a property';
 
-const WhatsAppWidget = () => {
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(MESSAGE)}`;
+interface WhatsAppWidgetProps {
+  propertyName?: string;
+}
+
+const WhatsAppWidget = ({ propertyName }: WhatsAppWidgetProps) => {
+  const location = useLocation();
+  const isPropertyPage = location.pathname.startsWith('/property/');
+
+  let message: string;
+  if (isPropertyPage && propertyName) {
+    const propertyLink = `${window.location.origin}${location.pathname}`;
+    message = `Namaste!! I am interested in this property: ${propertyName}\n${propertyLink}`;
+  } else {
+    message = 'Namaste!! Mera name : , looking for a property';
+  }
+
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
   return (
     <a
