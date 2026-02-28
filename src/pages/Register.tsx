@@ -122,17 +122,6 @@ const Register = () => {
                   <Label>{t('जिला', 'District')}</Label>
                   <Input value={form.district} onChange={(e) => update('district', e.target.value)} required placeholder={t('जिला लिखें', 'Enter district')} />
                 </div>
-                <div>
-                  <Label>{t('भूमिका', 'Role')}</Label>
-                  <Select value={form.role} onValueChange={(v) => update('role', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="buyer">{t('खरीदार', 'Buyer')}</SelectItem>
-                      <SelectItem value="seller">{t('विक्रेता', 'Seller')}</SelectItem>
-                      <SelectItem value="agent">{t('एजेंट', 'Agent')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   {loading ? t('भेज रहे हैं...', 'Sending...') : t('OTP भेजें', 'Send OTP')}
