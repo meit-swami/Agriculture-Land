@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Upload, X, Image, Video, FileText } from 'lucide-react';
+import { X, Image, Video, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileUploadProps {
   type: 'image' | 'video' | 'document';
   maxFiles: number;
-  files: File[];
-  onFilesChange: (files: File[]) => void;
+  uploadedUrls: string[];
+  onUrlsChange: (urls: string[]) => void;
 }
 
 const acceptMap = {
@@ -22,9 +23,10 @@ const iconMap = {
   document: FileText,
 };
 
-const FileUpload = ({ type, maxFiles, files, onFilesChange }: FileUploadProps) => {
+const FileUpload = ({ type, maxFiles, uploadedUrls, onUrlsChange }: FileUploadProps) => {
   const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
   const Icon = iconMap[type];
 
@@ -34,25 +36,67 @@ const FileUpload = ({ type, maxFiles, files, onFilesChange }: FileUploadProps) =
     document: t('दस्तावेज़ PDF अपलोड करें', 'Upload Document PDF'),
   };
 
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileType', type);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error(t('पहले लॉगिन करें', 'Please login first'));
+      return null;
+    }
+
+    const res = await supabase.functions.invoke('upload-media', {
+      body: formData,
+    });
+
+    if (res.error || res.data?.error) {
+      console.error('Upload error:', res.error || res.data?.error);
+      return null;
+    }
+
+    return res.data?.url || null;
+  };
+
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    if (files.length + selected.length > maxFiles) {
+    if (uploadedUrls.length + selected.length > maxFiles) {
       toast.error(t(`अधिकतम ${maxFiles} फ़ाइलें`, `Maximum ${maxFiles} files`));
       return;
     }
-    const newFiles = [...files, ...selected];
-    onFilesChange(newFiles);
 
+    // Show local previews for images immediately
     if (type === 'image') {
-      const newPreviews = selected.map((f) => URL.createObjectURL(f));
-      setPreviews((prev) => [...prev, ...newPreviews]);
+      const localPreviews = selected.map((f) => URL.createObjectURL(f));
+      setPreviews((prev) => [...prev, ...localPreviews]);
     }
+
+    setUploading(true);
+    const newUrls: string[] = [];
+
+    for (const file of selected) {
+      const url = await uploadFile(file);
+      if (url) {
+        newUrls.push(url);
+      } else {
+        toast.error(t(`"${file.name}" अपलोड विफल`, `Failed to upload "${file.name}"`));
+      }
+    }
+
+    if (newUrls.length > 0) {
+      onUrlsChange([...uploadedUrls, ...newUrls]);
+      toast.success(t(`${newUrls.length} फ़ाइल अपलोड हुई`, `${newUrls.length} file(s) uploaded`));
+    }
+
+    setUploading(false);
+    // Reset input
+    if (inputRef.current) inputRef.current.value = '';
   };
 
   const removeFile = (index: number) => {
-    const newFiles = files.filter((_, i) => i !== index);
-    onFilesChange(newFiles);
-    if (type === 'image') {
+    onUrlsChange(uploadedUrls.filter((_, i) => i !== index));
+    if (type === 'image' && previews[index]) {
       URL.revokeObjectURL(previews[index]);
       setPreviews((prev) => prev.filter((_, i) => i !== index));
     }
@@ -61,11 +105,17 @@ const FileUpload = ({ type, maxFiles, files, onFilesChange }: FileUploadProps) =
   return (
     <div>
       <div
-        onClick={() => inputRef.current?.click()}
-        className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+        onClick={() => !uploading && inputRef.current?.click()}
+        className={`border-2 border-dashed border-border rounded-xl p-6 text-center transition-colors ${uploading ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5'}`}
       >
-        <Icon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-        <p className="text-sm font-medium">{labels[type]}</p>
+        {uploading ? (
+          <Loader2 className="h-8 w-8 text-primary mx-auto mb-2 animate-spin" />
+        ) : (
+          <Icon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+        )}
+        <p className="text-sm font-medium">
+          {uploading ? t('अपलोड हो रहा है...', 'Uploading...') : labels[type]}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">
           {type === 'image' && t(`अधिकतम ${maxFiles} फ़ोटो (JPG, PNG)`, `Max ${maxFiles} photos (JPG, PNG)`)}
           {type === 'video' && t('MP4, WebM (अधिकतम 20MB)', 'MP4, WebM (max 20MB)')}
@@ -82,9 +132,9 @@ const FileUpload = ({ type, maxFiles, files, onFilesChange }: FileUploadProps) =
       </div>
 
       {/* Image Previews */}
-      {type === 'image' && previews.length > 0 && (
+      {type === 'image' && uploadedUrls.length > 0 && (
         <div className="grid grid-cols-4 gap-2 mt-3">
-          {previews.map((src, i) => (
+          {uploadedUrls.map((src, i) => (
             <div key={i} className="relative group rounded-lg overflow-hidden aspect-square">
               <img src={src} alt="" className="w-full h-full object-cover" />
               <button
@@ -100,11 +150,11 @@ const FileUpload = ({ type, maxFiles, files, onFilesChange }: FileUploadProps) =
       )}
 
       {/* File list for video/document */}
-      {type !== 'image' && files.length > 0 && (
+      {type !== 'image' && uploadedUrls.length > 0 && (
         <div className="mt-2 space-y-1">
-          {files.map((f, i) => (
+          {uploadedUrls.map((url, i) => (
             <div key={i} className="flex items-center justify-between bg-muted rounded-lg px-3 py-2 text-sm">
-              <span className="truncate">{f.name}</span>
+              <span className="truncate">{url.split('/').pop()}</span>
               <button type="button" onClick={() => removeFile(i)} className="text-destructive ml-2">
                 <X className="h-4 w-4" />
               </button>
