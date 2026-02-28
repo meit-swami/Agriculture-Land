@@ -27,8 +27,13 @@ const BuyerLanding = () => {
 
   // Query form state
   const [form, setForm] = useState({
-    name: '', phone: '', state: '', budgetMin: '', budgetMax: '', areaMin: '', message: '',
+    name: '', phone: '', state: '', district: '', budgetMin: '', budgetMax: '', areaMin: '', message: '',
   });
+
+  const formDistricts = useMemo(() => {
+    if (!form.state) return [];
+    return [...new Set(mockProperties.filter(p => p.state === form.state).map(p => p.district))].sort();
+  }, [form.state]);
   const [formUnit, setFormUnit] = useState<'bigha' | 'acre'>('bigha');
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,6 +101,7 @@ const BuyerLanding = () => {
       name: form.name.trim().slice(0, 100),
       phone: form.phone.trim(),
       preferred_state: form.state || '',
+      preferred_district: form.district || '',
       budget_min: formUnit === 'acre' ? Math.round(budgetMinVal / BIGHA_PER_ACRE) : budgetMinVal,
       budget_max: formUnit === 'acre' ? Math.round(budgetMaxVal / BIGHA_PER_ACRE) : budgetMaxVal,
       area_min: formUnit === 'acre' ? Math.round(areaVal * BIGHA_PER_ACRE) : areaVal,
@@ -107,7 +113,7 @@ const BuyerLanding = () => {
       return;
     }
     toast({ title: t('आपकी क्वेरी भेज दी गई!', 'Your query has been submitted!'), description: t('हम जल्द संपर्क करेंगे', 'We will contact you soon') });
-    setForm({ name: '', phone: '', state: '', budgetMin: '', budgetMax: '', areaMin: '', message: '' });
+    setForm({ name: '', phone: '', state: '', district: '', budgetMin: '', budgetMax: '', areaMin: '', message: '' });
   };
 
   const startWith = (tab: string) => {
@@ -352,9 +358,16 @@ const BuyerLanding = () => {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">{t('राज्य', 'Preferred State')}</label>
-                    <Select value={form.state} onValueChange={(v) => setForm({ ...form, state: v })}>
+                    <Select value={form.state} onValueChange={(v) => setForm({ ...form, state: v, district: '' })}>
                       <SelectTrigger><SelectValue placeholder={t('राज्य चुनें', 'Select state')} /></SelectTrigger>
                       <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">{t('जिला', 'Preferred District')}</label>
+                    <Select value={form.district} onValueChange={(v) => setForm({ ...form, district: v })} disabled={!form.state}>
+                      <SelectTrigger><SelectValue placeholder={t('जिला चुनें', 'Select district')} /></SelectTrigger>
+                      <SelectContent>{formDistricts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="sm:col-span-2">
