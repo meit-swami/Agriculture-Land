@@ -1,3 +1,4 @@
+import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AppLayout from '@/components/layout/AppLayout';
 import Footer from '@/components/layout/Footer';
@@ -13,6 +14,11 @@ const Index = () => {
   const { t, lang } = useLanguage();
   const featured = mockProperties.filter((p) => p.verified).slice(0, 4);
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
+  const rolesRef = React.useRef<HTMLElement>(null);
+
+  React.useEffect(() => {
+    rolesRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   return (
     <AppLayout>
@@ -168,7 +174,7 @@ const Index = () => {
       </section>
 
       {/* User Roles */}
-      <section className="container mx-auto px-4 py-12 md:py-16">
+      <section ref={rolesRef} className="container mx-auto px-4 py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 opacity-0 animate-fade-in [animation-delay:0.2s]">
           {t('आपकी भूमिका?', 'Your Role?')}
         </h2>
