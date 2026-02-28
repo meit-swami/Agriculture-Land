@@ -1,0 +1,1 @@
+ALTER TABLE public.buyer_queries ADD COLUMN preferred_district text DEFAULT '';
