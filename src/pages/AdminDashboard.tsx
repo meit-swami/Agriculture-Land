@@ -18,7 +18,8 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, Users, BarChart3, CheckCircle2, Clock, XCircle, MapPin, Eye,
-  Bell, Trash2, Edit, Crown, Home, Send, Image, Video, FileText, ExternalLink, Loader2
+  Bell, Trash2, Edit, Crown, Home, Send, Image, Video, FileText, ExternalLink, Loader2,
+  Link as LinkIcon, Monitor, Globe, Activity
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -28,7 +29,8 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, users: 0, subs: 0 });
+  const [privateLinksData, setPrivateLinksData] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, users: 0, subs: 0, links: 0 });
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [viewProperty, setViewProperty] = useState<any>(null);
@@ -43,20 +45,49 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [propRes, profileRes, roleRes, subRes] = await Promise.all([
+    const [propRes, profileRes, roleRes, subRes, linksRes] = await Promise.all([
       supabase.from('properties').select('*').order('created_at', { ascending: false }),
       supabase.from('profiles').select('*'),
       supabase.from('user_roles').select('*'),
       supabase.from('subscriptions' as any).select('*').order('created_at', { ascending: false }),
+      supabase.from('private_links').select('*').order('created_at', { ascending: false }),
     ]);
     const props = propRes.data || [];
     const profs = profileRes.data || [];
     const rls = roleRes.data || [];
     const subs = (subRes.data || []) as any[];
+    const links = (linksRes.data || []) as any[];
+
+    // Fetch all link views
+    let linkViews: any[] = [];
+    if (links.length > 0) {
+      const linkIds = links.map((l: any) => l.id);
+      const { data: views } = await supabase
+        .from('link_views')
+        .select('*')
+        .in('link_id', linkIds)
+        .order('viewed_at', { ascending: false });
+      linkViews = views || [];
+    }
+
+    // Build enriched links data
+    const propMap: Record<string, any> = {};
+    props.forEach((p: any) => { propMap[p.id] = p; });
+
+    const enrichedLinks = links.map((l: any) => ({
+      ...l,
+      views: linkViews.filter((v: any) => v.link_id === l.id),
+      viewCount: linkViews.filter((v: any) => v.link_id === l.id).length,
+      propertyTitle: propMap[l.property_id]?.title || '',
+      ownerName: profs.find((p: any) => p.user_id === l.user_id)?.full_name || l.user_id.slice(0, 8),
+      ownerPhone: profs.find((p: any) => p.user_id === l.user_id)?.phone || '',
+    }));
+
     setProperties(props);
     setUsers(profs);
     setRoles(rls);
     setSubscriptions(subs);
+    setPrivateLinksData(enrichedLinks);
     setStats({
       total: props.length,
       pending: props.filter((p) => p.verification_status === 'pending').length,
@@ -64,6 +95,7 @@ const AdminDashboard = () => {
       rejected: props.filter((p) => p.verification_status === 'rejected').length,
       users: profs.length,
       subs: subs.length,
+      links: links.length,
     });
     setLoading(false);
   };
@@ -220,7 +252,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mb-6">
           {[
             { label: t('कुल भूमि', 'Total'), value: stats.total, icon: BarChart3 },
             { label: t('लंबित', 'Pending'), value: stats.pending, icon: Clock },
@@ -228,6 +260,7 @@ const AdminDashboard = () => {
             { label: t('अस्वीकृत', 'Rejected'), value: stats.rejected, icon: XCircle },
             { label: t('यूज़र', 'Users'), value: stats.users, icon: Users },
             { label: t('सदस्यता', 'Subs'), value: stats.subs, icon: Crown },
+            { label: t('प्राइवेट लिंक', 'Links'), value: stats.links, icon: LinkIcon },
           ].map((s) => (
             <Card key={s.label} className="border-0 shadow-md">
               <CardContent className="p-3 text-center">
@@ -244,6 +277,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="properties">{t('भूमि सत्यापन', 'Verification')}</TabsTrigger>
             <TabsTrigger value="users">{t('यूज़र', 'Users')}</TabsTrigger>
             <TabsTrigger value="subscriptions">{t('सदस्यता', 'Subscriptions')}</TabsTrigger>
+            <TabsTrigger value="analytics">{t('लिंक एनालिटिक्स', 'Link Analytics')}</TabsTrigger>
           </TabsList>
 
           {/* ─── Properties Tab ─── */}
@@ -357,6 +391,68 @@ const AdminDashboard = () => {
                       <Button variant="destructive" size="sm" onClick={() => deleteSubscription(s.id)}>
                         <Trash2 className="h-3 w-3 mr-1" />{t('हटाएँ', 'Delete')}
                       </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Link Analytics Tab ─── */}
+          <TabsContent value="analytics">
+            {privateLinksData.length === 0 ? (
+              <p className="text-center text-muted-foreground py-10">{t('कोई प्राइवेट लिंक नहीं', 'No private links')}</p>
+            ) : (
+              <div className="space-y-4">
+                {privateLinksData.map((link: any) => (
+                  <Card key={link.id} className="border-0 shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{link.propertyTitle}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('बनाया', 'Created by')}: {link.ownerName} ({link.ownerPhone}) • {new Date(link.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-primary/10 text-primary">
+                            <Eye className="h-3 w-3 mr-1" />
+                            {link.viewCount} {t('व्यू', 'views')}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            <LinkIcon className="h-3 w-3 mr-1" />
+                            {link.token.slice(0, 12)}...
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {link.views.length > 0 ? (
+                        <div className="bg-muted rounded-lg p-3">
+                          <p className="text-xs font-semibold mb-2 flex items-center gap-1">
+                            <Activity className="h-3 w-3 text-primary" />
+                            {t('व्यू इतिहास', 'View History')}
+                          </p>
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {link.views.map((v: any, i: number) => (
+                              <div key={v.id || i} className="bg-background rounded p-2 text-xs flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                <span className="font-medium">{new Date(v.viewed_at).toLocaleString()}</span>
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <Globe className="h-3 w-3" />
+                                  {v.ip_address || t('अज्ञात', 'Unknown')}
+                                </span>
+                                <span className="flex items-center gap-1 text-muted-foreground truncate max-w-xs">
+                                  <Monitor className="h-3 w-3" />
+                                  {v.device_info ? v.device_info.slice(0, 60) + (v.device_info.length > 60 ? '...' : '') : t('अज्ञात', 'Unknown')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground bg-muted rounded p-2 text-center">
+                          {t('अभी तक कोई व्यू नहीं', 'No views yet')}
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
