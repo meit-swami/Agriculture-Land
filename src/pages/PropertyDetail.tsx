@@ -215,15 +215,12 @@ const PropertyDetail = () => {
 
         {/* Price */}
         <div className="mb-6">
-          <div className="text-3xl font-bold text-primary">
-            {priceFmt(property.askingPrice)}
-            {property.negotiable && <span className="text-sm font-normal text-muted-foreground ml-2">({t('मोलभाव योग्य', 'Negotiable')})</span>}
-          </div>
           {property.area > 0 && (
-            <div className="text-sm text-muted-foreground mt-1">
-              {t('प्रति बीघा', 'Per Bigha')}: <span className="font-semibold text-foreground">{priceFmt(Math.round(property.askingPrice / property.area))}</span>
+            <div className="text-3xl font-bold text-primary">
+              {priceFmt(Math.round(property.askingPrice / property.area))} <span className="text-lg font-medium">/ {t('बीघा', 'Bigha')}</span>
             </div>
           )}
+          {property.negotiable && <span className="text-sm font-normal text-muted-foreground">({t('मोलभाव योग्य', 'Negotiable')})</span>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
