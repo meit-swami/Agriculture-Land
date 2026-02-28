@@ -206,9 +206,11 @@ const PropertyDetail = () => {
               <MapPin className="h-4 w-4" /> {property.village}, {property.tehsil}, {property.district}, {property.state}
             </p>
           </div>
-          <Badge className={`text-sm px-3 py-1 ${property.verified ? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}>
-            {property.verified ? <><CheckCircle2 className="h-4 w-4 mr-1" />{t('टीम द्वारा सत्यापित', 'Team Verified')}</> : <><Clock className="h-4 w-4 mr-1" />{t('सत्यापन लंबित', 'Verification Pending')}</>}
-          </Badge>
+          {property.verified ? null : (
+            <Badge className="text-sm px-3 py-1 bg-accent text-accent-foreground">
+              <Clock className="h-4 w-4 mr-1" />{t('सत्यापन लंबित', 'Verification Pending')}
+            </Badge>
+          )}
         </div>
 
         {/* Price */}
