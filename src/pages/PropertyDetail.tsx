@@ -225,11 +225,8 @@ const PropertyDetail = () => {
                 <h2 className="font-bold text-lg mb-4">{t('भूमि विवरण', 'Land Details')}</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
-                    { icon: Ruler, label: t('क्षेत्रफल', 'Area'), value: `${property.area} ${property.areaUnit === 'bigha' ? t('बीघा', 'Bigha') : t('एकड़', 'Acre')}` },
                     { icon: Tag, label: t('भूमि प्रकार', 'Land Type'), value: property.landType === 'irrigated' ? t('सिंचित', 'Irrigated') : t('गैर-सिंचित', 'Non-Irrigated') },
-                    { icon: FileText, label: t('खसरा नंबर', 'Khasra Number'), value: property.khasraNumber },
                     { icon: Tag, label: t('श्रेणी', 'Category'), value: property.category },
-                    { icon: CalendarDays, label: t('पोस्ट तारीख', 'Posted'), value: property.postedDate },
                     { icon: User, label: t('प्रकार', 'Type'), value: property.ownerType === 'owner' ? t('मालिक', 'Owner') : t('ब्रोकर', 'Broker') },
                   ].map((item) => (
                     <div key={item.label} className="flex items-start gap-2">
