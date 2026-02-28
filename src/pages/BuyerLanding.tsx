@@ -38,6 +38,7 @@ const BuyerLanding = () => {
   const [filterLandType, setFilterLandType] = useState('all');
   const [filterBudgetMax, setFilterBudgetMax] = useState('');
   const [budgetUnit, setBudgetUnit] = useState<'bigha' | 'acre'>('bigha');
+  const [cardPriceUnit, setCardPriceUnit] = useState<'bigha' | 'acre'>('bigha');
 
   // 1 Acre = 5 Bigha (standard conversion)
   const BIGHA_PER_ACRE = 5;
@@ -262,11 +263,28 @@ const BuyerLanding = () => {
 
               {/* Property Grid */}
               <main className="w-full md:w-3/4">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  {t('उपलब्ध भूमि', 'Available Properties')}
-                  <Badge variant="outline" className="ml-auto text-xs">{filteredProperties.length} {t('परिणाम', 'results')}</Badge>
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    {t('उपलब्ध भूमि', 'Available Properties')}
+                    <Badge variant="outline" className="ml-2 text-xs">{filteredProperties.length} {t('परिणाम', 'results')}</Badge>
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">{t('कीमत:', 'Price:')}</span>
+                    <button
+                      onClick={() => setCardPriceUnit('bigha')}
+                      className={`px-2 py-1 rounded ${cardPriceUnit === 'bigha' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      /{t('बीघा', 'Bigha')}
+                    </button>
+                    <button
+                      onClick={() => setCardPriceUnit('acre')}
+                      className={`px-2 py-1 rounded ${cardPriceUnit === 'acre' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      /{t('एकड़', 'Acre')}
+                    </button>
+                  </div>
+                </div>
                 {filteredProperties.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground">
                     <p className="text-lg font-medium">{t('कोई भूमि नहीं मिली', 'No properties found')}</p>
@@ -296,8 +314,10 @@ const BuyerLanding = () => {
                             <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="h-3 w-3" />{property.district}, {property.state}</p>
                             <div className="flex items-center justify-between">
                               <span className="text-lg font-bold text-primary">
-                                {priceFmt(Math.round(property.askingPrice / property.area))}
-                                <span className="text-xs font-normal text-muted-foreground">/{t('बीघा', 'Bigha')}</span>
+                                {cardPriceUnit === 'acre'
+                                  ? priceFmt(Math.round((property.askingPrice / property.area) * BIGHA_PER_ACRE))
+                                  : priceFmt(Math.round(property.askingPrice / property.area))}
+                                <span className="text-xs font-normal text-muted-foreground">/{cardPriceUnit === 'acre' ? t('एकड़', 'Acre') : t('बीघा', 'Bigha')}</span>
                               </span>
                               <span className="text-xs text-muted-foreground">{property.area} {property.areaUnit === 'bigha' ? t('बीघा', 'Bigha') : t('एकड़', 'Acre')}</span>
                             </div>
