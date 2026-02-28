@@ -1,6 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react';
+import { Home, Search, PlusCircle, MessageCircle, User, Globe } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 
 const navItems = [
@@ -8,11 +8,10 @@ const navItems = [
   { path: '/browse', hi: 'खोजें', en: 'Browse', icon: Search },
   { path: '/post', hi: 'पोस्ट करें', en: 'Post', icon: PlusCircle },
   { path: '/messages', hi: 'संदेश', en: 'Messages', icon: MessageCircle },
-  { path: '/profile', hi: 'प्रोफाइल', en: 'Profile', icon: User },
 ];
 
 const BottomNav = () => {
-  const { t } = useLanguage();
+  const { lang, toggle, t } = useLanguage();
   const location = useLocation();
 
   return (
@@ -35,12 +34,32 @@ const BottomNav = () => {
             </Link>
           );
         })}
+        <Link
+          to="/profile"
+          className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-[48px] ${
+            location.pathname === '/profile' ? 'text-primary' : 'text-muted-foreground'
+          }`}
+        >
+          <User className={`h-5 w-5 ${location.pathname === '/profile' ? 'stroke-[2.5]' : ''}`} />
+          <span className="text-[10px] font-medium leading-tight">
+            {t('प्रोफाइल', 'Profile')}
+          </span>
+        </Link>
         <div className="flex flex-col items-center gap-0.5 px-2 py-1.5 min-w-[48px]">
           <NotificationBell />
           <span className="text-[10px] font-medium leading-tight text-muted-foreground">
             {t('सूचना', 'Alerts')}
           </span>
         </div>
+        <button
+          onClick={toggle}
+          className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-[48px] text-muted-foreground"
+        >
+          <Globe className="h-5 w-5" />
+          <span className="text-[10px] font-medium leading-tight">
+            {lang === 'hi' ? 'EN' : 'हिं'}
+          </span>
+        </button>
       </div>
     </nav>
   );
