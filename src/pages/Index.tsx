@@ -217,7 +217,7 @@ const Index = () => {
               </div>
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">{t(role.descHi, role.descEn)}</p>
-              <Link to="/register">
+              <Link to={role.en === 'Buyer' ? '/buyer' : '/register'}>
                 <Button variant="link" className="mt-2 p-0 text-primary font-semibold">
                   {t('शुरू करें →', 'Get Started →')}
                 </Button>
