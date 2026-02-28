@@ -28,6 +28,8 @@ const PropertyDetail = () => {
   const [hasActivePayment, setHasActivePayment] = useState(false);
   const [privateLink, setPrivateLink] = useState<string | null>(null);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [priceUnit, setPriceUnit] = useState<'bigha' | 'acre'>('bigha');
+  const BIGHA_PER_ACRE = 5;
 
   const mockProperty = mockProperties.find((p) => p.id === id);
 
@@ -247,8 +249,27 @@ const PropertyDetail = () => {
         {/* Price */}
         <div className="mb-6">
           {property.area > 0 && (
-            <div className="text-3xl font-bold text-primary">
-              {priceFmt(Math.round(property.askingPrice / property.area))} <span className="text-3xl font-bold">/ {t('बीघा', 'Bigha')}</span>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="text-3xl font-bold text-primary">
+                {priceUnit === 'acre'
+                  ? priceFmt(Math.round((property.askingPrice / property.area) * BIGHA_PER_ACRE))
+                  : priceFmt(Math.round(property.askingPrice / property.area))}
+                <span className="text-3xl font-bold"> / {priceUnit === 'acre' ? t('एकड़', 'Acre') : t('बीघा', 'Bigha')}</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs">
+                <button
+                  onClick={() => setPriceUnit('bigha')}
+                  className={`px-2.5 py-1 rounded ${priceUnit === 'bigha' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                >
+                  {t('बीघा', 'Bigha')}
+                </button>
+                <button
+                  onClick={() => setPriceUnit('acre')}
+                  className={`px-2.5 py-1 rounded ${priceUnit === 'acre' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                >
+                  {t('एकड़', 'Acre')}
+                </button>
+              </div>
             </div>
           )}
           {property.negotiable && <span className="text-sm font-normal text-muted-foreground">({t('मोलभाव योग्य', 'Negotiable')})</span>}
