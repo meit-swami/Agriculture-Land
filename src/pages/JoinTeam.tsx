@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { states } from '@/data/mockProperties';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Phone, MapPin, Send, Handshake } from 'lucide-react';
@@ -16,7 +18,7 @@ const JoinTeam = () => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    name: '', phone: '', state: '', district: '', experience: '', message: '',
+    name: '', phone: '', state: '', district: '', experience: '', message: '', role: 'buyer',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +46,7 @@ const JoinTeam = () => {
       return;
     }
     toast({ title: t('आवेदन भेज दिया गया!', 'Application submitted!'), description: t('हम जल्द संपर्क करेंगे', 'We will contact you soon') });
-    setForm({ name: '', phone: '', state: '', district: '', experience: '', message: '' });
+    setForm({ name: '', phone: '', state: '', district: '', experience: '', message: '', role: 'buyer' });
   };
 
   return (
@@ -88,6 +90,22 @@ const JoinTeam = () => {
             <div className="sm:col-span-2 space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">{t('अनुभव', 'Experience')}</label>
               <Input placeholder={t('कृषि भूमि में अनुभव...', 'Experience in agri land...')} value={form.experience} onChange={(e) => setForm({ ...form, experience: e.target.value })} maxLength={200} />
+            </div>
+            <div className="sm:col-span-2 space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">{t('आप क्या बनना चाहते हैं?', 'What do you want to be?')}</label>
+              <RadioGroup value={form.role} onValueChange={(v) => setForm({ ...form, role: v })} className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'buyer', label: t('खरीदार', 'Buyer') },
+                  { value: 'seller', label: t('विक्रेता', 'Seller') },
+                  { value: 'agent', label: t('एजेंट के रूप में', 'List as Agent') },
+                  { value: 'team', label: t('टीम मेंबर बनें', 'Become Team Member') },
+                ].map((opt) => (
+                  <Label key={opt.value} className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-colors ${form.role === opt.value ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                    <RadioGroupItem value={opt.value} />
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </Label>
+                ))}
+              </RadioGroup>
             </div>
             <div className="sm:col-span-2 space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">{t('अतिरिक्त जानकारी', 'Additional Details')}</label>
