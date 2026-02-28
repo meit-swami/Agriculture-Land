@@ -32,6 +32,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [viewProperty, setViewProperty] = useState<any>(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editUserForm, setEditUserForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
@@ -65,6 +66,26 @@ const AdminDashboard = () => {
       subs: subs.length,
     });
     setLoading(false);
+  };
+
+  const openPropertyView = async (propertyId: string) => {
+    setViewLoading(true);
+    setViewProperty(null);
+
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', propertyId)
+      .maybeSingle();
+
+    setViewLoading(false);
+
+    if (error || !data) {
+      toast.error(t('भूमि विवरण लोड नहीं हुआ', 'Failed to load property details'));
+      return;
+    }
+
+    setViewProperty(data);
   };
 
   const sendNotification = async (userId: string, title: string, message: string, propertyId?: string) => {
@@ -262,7 +283,7 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <div className="flex flex-row md:flex-col gap-1.5 shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => setViewProperty(p)}>
+                        <Button variant="outline" size="sm" onClick={() => openPropertyView(p.id)}>
                           <Eye className="h-4 w-4 mr-1" />{t('देखें', 'View')}
                         </Button>
                         <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => updatePropertyStatus(p.id, 'approved')}>
@@ -346,12 +367,24 @@ const AdminDashboard = () => {
       </div>
 
       {/* ─── Property View Dialog ─── */}
-      <Dialog open={!!viewProperty} onOpenChange={(open) => { if (!open) setViewProperty(null); }}>
+      <Dialog open={viewLoading || !!viewProperty} onOpenChange={(open) => {
+        if (!open) {
+          setViewLoading(false);
+          setViewProperty(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{t('भूमि विवरण', 'Property Details')}</DialogTitle>
           </DialogHeader>
-          {viewProperty && (
+
+          {viewLoading && (
+            <div className="py-10 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {!viewLoading && viewProperty && (
             <ScrollArea className="max-h-[70vh] pr-4">
               <div className="space-y-4">
                 {/* Images */}
