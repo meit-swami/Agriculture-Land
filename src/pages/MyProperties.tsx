@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import { MapPin, Edit, Eye, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2, Image, Video, FileText, ExternalLink } from 'lucide-react';
+import { MapPin, Edit, Eye, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2, Image, Video, FileText, ExternalLink, X } from 'lucide-react';
+import FileUpload from '@/components/FileUpload';
 import { states } from '@/data/mockProperties';
 
 const MyProperties = () => {
@@ -71,8 +72,27 @@ const MyProperties = () => {
   const saveEdit = async () => {
     if (!editingId) return;
     setSaving(true);
-    const { images, video_url, document_url, ...editableFields } = editForm;
-    const { error } = await supabase.from('properties').update(editableFields).eq('id', editingId);
+    const { error } = await supabase.from('properties').update({
+      title: editForm.title,
+      title_en: editForm.title_en,
+      state: editForm.state,
+      district: editForm.district,
+      tehsil: editForm.tehsil,
+      village: editForm.village,
+      land_type: editForm.land_type,
+      category: editForm.category,
+      area: editForm.area,
+      area_unit: editForm.area_unit,
+      khasra_number: editForm.khasra_number,
+      asking_price: editForm.asking_price,
+      negotiable: editForm.negotiable,
+      owner_type: editForm.owner_type,
+      owner_name: editForm.owner_name,
+      owner_phone: editForm.owner_phone,
+      images: editForm.images?.length > 0 ? editForm.images : null,
+      video_url: editForm.video_url || null,
+      document_url: editForm.document_url || null,
+    }).eq('id', editingId);
     setSaving(false);
     if (error) {
       toast.error(t('अपडेट विफल', 'Update failed'));
@@ -257,54 +277,89 @@ const MyProperties = () => {
                                 </div>
                                 <div><Label>{t('मालिक फ़ोन', 'Owner Phone')}</Label><Input value={editForm.owner_phone || ''} onChange={(e) => setEditForm({ ...editForm, owner_phone: e.target.value })} /></div>
 
-                                {/* Media (read-only display) */}
+                                {/* Media - editable with FileUpload */}
                                 <h3 className="font-semibold text-sm text-muted-foreground pt-2">{t('मीडिया फ़ाइलें', 'Media Files')}</h3>
 
-                                {/* Photos */}
-                                {editForm.images?.length > 0 && (
-                                  <div>
-                                    <Label className="flex items-center gap-1 mb-2"><Image className="h-4 w-4" />{t('फ़ोटो', 'Photos')} ({editForm.images.length})</Label>
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                {/* Photos - show existing with remove + upload more */}
+                                <div>
+                                  <Label className="flex items-center gap-1 mb-2"><Image className="h-4 w-4" />{t('फ़ोटो', 'Photos')} ({editForm.images?.length || 0})</Label>
+                                  {editForm.images?.length > 0 && (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-2">
                                       {editForm.images.map((url: string, i: number) => (
-                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                                          <img src={url} alt={`Photo ${i + 1}`} className="w-full h-20 object-cover rounded-lg border border-border hover:ring-2 hover:ring-primary transition-all" loading="lazy" />
-                                        </a>
+                                        <div key={i} className="relative group rounded-lg overflow-hidden aspect-square">
+                                          <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditForm({ ...editForm, images: editForm.images.filter((_: string, idx: number) => idx !== i) })}
+                                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </div>
                                       ))}
                                     </div>
-                                  </div>
-                                )}
+                                  )}
+                                  <FileUpload
+                                    type="image"
+                                    maxFiles={10}
+                                    uploadedUrls={editForm.images || []}
+                                    onUrlsChange={(urls) => setEditForm({ ...editForm, images: urls })}
+                                  />
+                                </div>
 
                                 {/* Video */}
-                                {editForm.video_url && (
-                                  <div>
-                                    <Label className="flex items-center gap-1 mb-2"><Video className="h-4 w-4" />{t('वीडियो', 'Video')}</Label>
-                                    <a href={editForm.video_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-muted p-2 rounded">
-                                      <Video className="h-4 w-4" />
-                                      {t('वीडियो देखें', 'View Video')}
-                                      <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                  </div>
-                                )}
+                                <div>
+                                  <Label className="flex items-center gap-1 mb-2"><Video className="h-4 w-4" />{t('वीडियो', 'Video')}</Label>
+                                  {editForm.video_url && (
+                                    <div className="flex items-center justify-between bg-muted rounded-lg px-3 py-2 text-sm mb-2">
+                                      <a href={editForm.video_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate flex items-center gap-1">
+                                        <Video className="h-4 w-4 shrink-0" />
+                                        {t('वीडियो देखें', 'View Video')}
+                                        <ExternalLink className="h-3 w-3 shrink-0" />
+                                      </a>
+                                      <button type="button" onClick={() => setEditForm({ ...editForm, video_url: null })} className="text-destructive ml-2">
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  )}
+                                  {!editForm.video_url && (
+                                    <FileUpload
+                                      type="video"
+                                      maxFiles={1}
+                                      uploadedUrls={editForm.video_url ? [editForm.video_url] : []}
+                                      onUrlsChange={(urls) => setEditForm({ ...editForm, video_url: urls[0] || null })}
+                                    />
+                                  )}
+                                </div>
 
                                 {/* Document */}
-                                {editForm.document_url && (
-                                  <div>
-                                    <Label className="flex items-center gap-1 mb-2"><FileText className="h-4 w-4" />{t('दस्तावेज़', 'Document')}</Label>
-                                    <a href={editForm.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-muted p-2 rounded">
-                                      <FileText className="h-4 w-4" />
-                                      {t('दस्तावेज़ देखें', 'View Document')}
-                                      <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                  </div>
-                                )}
-
-                                {!editForm.images?.length && !editForm.video_url && !editForm.document_url && (
-                                  <p className="text-sm text-muted-foreground">{t('कोई मीडिया अपलोड नहीं हुई', 'No media uploaded')}</p>
-                                )}
+                                <div>
+                                  <Label className="flex items-center gap-1 mb-2"><FileText className="h-4 w-4" />{t('दस्तावेज़', 'Document')}</Label>
+                                  {editForm.document_url && (
+                                    <div className="flex items-center justify-between bg-muted rounded-lg px-3 py-2 text-sm mb-2">
+                                      <a href={editForm.document_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate flex items-center gap-1">
+                                        <FileText className="h-4 w-4 shrink-0" />
+                                        {t('दस्तावेज़ देखें', 'View Document')}
+                                        <ExternalLink className="h-3 w-3 shrink-0" />
+                                      </a>
+                                      <button type="button" onClick={() => setEditForm({ ...editForm, document_url: null })} className="text-destructive ml-2">
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  )}
+                                  {!editForm.document_url && (
+                                    <FileUpload
+                                      type="document"
+                                      maxFiles={1}
+                                      uploadedUrls={editForm.document_url ? [editForm.document_url] : []}
+                                      onUrlsChange={(urls) => setEditForm({ ...editForm, document_url: urls[0] || null })}
+                                    />
+                                  )}
+                                </div>
 
                                 <Button className="w-full bg-primary text-primary-foreground mt-4" onClick={saveEdit} disabled={saving}>
                                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                                  {t('सेव करें', 'Save Changes')}
+                                  {t('अपडेट करें', 'Update')}
                                 </Button>
                               </div>
                             </ScrollArea>
