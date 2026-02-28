@@ -12,7 +12,8 @@ import { states } from '@/data/mockProperties';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
-import { CheckCircle2, MapPin, FileText, Upload, User } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import FileUpload from '@/components/FileUpload';
 
 const steps = [
   { hi: 'स्थान', en: 'Location' },
@@ -28,6 +29,9 @@ const PostProperty = () => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<File[]>([]);
   const [form, setForm] = useState({
     state: '', district: '', tehsil: '', village: '',
     landType: 'irrigated', category: 'General', area: '', areaUnit: 'bigha',
@@ -168,17 +172,9 @@ const PostProperty = () => {
 
             {step === 2 && (
               <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
-                  <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground text-sm">{t('फ़ोटो अपलोड (अधिकतम 10)', 'Upload Photos (max 10)')}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t('यह सुविधा जल्द उपलब्ध होगी', 'Coming soon')}</p>
-                </div>
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                  <p className="text-muted-foreground text-sm">{t('वीडियो अपलोड (वैकल्पिक)', 'Upload Video (optional)')}</p>
-                </div>
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                  <p className="text-muted-foreground text-sm">{t('दस्तावेज़ PDF अपलोड (वैकल्पिक)', 'Upload Document PDF (optional)')}</p>
-                </div>
+                <FileUpload type="image" maxFiles={10} files={photos} onFilesChange={setPhotos} />
+                <FileUpload type="video" maxFiles={1} files={videos} onFilesChange={setVideos} />
+                <FileUpload type="document" maxFiles={1} files={documents} onFilesChange={setDocuments} />
               </div>
             )}
 
