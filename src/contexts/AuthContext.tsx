@@ -8,15 +8,15 @@ interface AuthContextType {
   loading: boolean;
   profile: { full_name: string; phone: string; state: string; district: string } | null;
   role: string | null;
-  signUp: (email: string, password: string, metadata: Record<string, string>) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  sendOtp: (phone: string) => Promise<{ error: any }>;
+  verifyOtp: (phone: string, otp: string, metadata?: Record<string, string>) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null, session: null, loading: true, profile: null, role: null,
-  signUp: async () => ({ error: null }),
-  signIn: async () => ({ error: null }),
+  sendOtp: async () => ({ error: null }),
+  verifyOtp: async () => ({ error: null }),
   signOut: async () => {},
 });
 
@@ -33,20 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const authLockKey = `lock:${authStorageKey}`;
 
   const clearAuthLock = () => {
-    try {
-      localStorage.removeItem(authLockKey);
-    } catch {
-      // ignore localStorage access errors
-    }
+    try { localStorage.removeItem(authLockKey); } catch {}
   };
 
   const clearStaleAuthState = () => {
-    try {
-      localStorage.removeItem(authStorageKey);
-      clearAuthLock();
-    } catch {
-      // ignore localStorage access errors
-    }
+    try { localStorage.removeItem(authStorageKey); clearAuthLock(); } catch {}
   };
 
   const fetchProfile = async (userId: string) => {
@@ -87,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    // Clear any orphaned lock key from previous crashed/unmounted sessions
     clearAuthLock();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -100,40 +90,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, metadata: Record<string, string>) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: metadata,
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    return { error };
+  const sendOtp = async (phone: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { phone },
+      });
+      if (error) return { error };
+      if (data?.error) return { error: { message: data.error } };
+      return { error: null };
+    } catch (err: any) {
+      return { error: { message: err.message || 'Failed to send OTP' } };
+    }
   };
 
-  const signIn = async (email: string, password: string) => {
-    // Reset stale auth artifacts before trying to sign in
-    clearStaleAuthState();
-
-    // Best effort local sign-out (prevents stale in-memory session state)
+  const verifyOtp = async (phone: string, otp: string, metadata?: Record<string, string>) => {
     try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // Ignore signOut errors
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error && String(error.message).toLowerCase().includes('failed to fetch')) {
-      // Ensure next attempt starts from a clean state
       clearStaleAuthState();
-    }
 
-    return { error };
+      const { data, error } = await supabase.functions.invoke('verify-phone-otp', {
+        body: { phone, otp, metadata },
+      });
+
+      if (error) return { error };
+      if (data?.error) return { error: { message: data.error } };
+
+      // Use the token_hash to verify OTP via Supabase auth
+      if (data?.token_hash && data?.email) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: data.token_hash,
+          type: 'magiclink',
+        });
+        if (verifyError) return { error: verifyError };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: { message: err.message || 'Failed to verify OTP' } };
+    }
   };
 
   const signOut = async () => {
@@ -145,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, role, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, role, sendOtp, verifyOtp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
