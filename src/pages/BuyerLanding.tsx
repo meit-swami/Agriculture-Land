@@ -1,0 +1,185 @@
+import React, { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import AppLayout from '@/components/layout/AppLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { mockProperties, formatPrice, formatPriceEn, states } from '@/data/mockProperties';
+import { MapPin, CheckCircle2, Send, User, Phone, IndianRupee, Ruler } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+
+const BuyerLanding = () => {
+  const { t, lang } = useLanguage();
+  const { toast } = useToast();
+  const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
+  const allProperties = mockProperties;
+
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    state: '',
+    budgetMin: '',
+    budgetMax: '',
+    areaMin: '',
+    message: '',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim()) {
+      toast({ title: t('कृपया नाम और फ़ोन भरें', 'Please fill name and phone'), variant: 'destructive' });
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(form.phone.trim())) {
+      toast({ title: t('सही फ़ोन नंबर डालें', 'Enter a valid phone number'), variant: 'destructive' });
+      return;
+    }
+    toast({ title: t('आपकी क्वेरी भेज दी गई!', 'Your query has been submitted!'), description: t('हम जल्द संपर्क करेंगे', 'We will contact you soon') });
+    setForm({ name: '', phone: '', state: '', budgetMin: '', budgetMax: '', areaMin: '', message: '' });
+  };
+
+  return (
+    <AppLayout>
+      {/* Quick Query Form */}
+      <section className="bg-gradient-to-br from-primary to-secondary py-10">
+        <div className="container mx-auto px-4">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-primary-foreground text-center mb-2">
+            {t('अपनी ज़रूरत बताएं', 'Tell Us Your Requirement')}
+          </h1>
+          <p className="text-primary-foreground/80 text-center mb-6 text-sm">
+            {t('फ़ॉर्म भरें, हम आपके लिए सही भूमि ढूंढेंगे', 'Fill the form, we will find the right land for you')}
+          </p>
+
+          <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-card rounded-2xl shadow-xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" />{t('नाम', 'Name')} *</label>
+              <Input
+                placeholder={t('आपका नाम', 'Your name')}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{t('फ़ोन', 'Phone')} *</label>
+              <Input
+                placeholder="9876543210"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                maxLength={10}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('राज्य', 'Preferred State')}</label>
+              <Select value={form.state} onValueChange={(v) => setForm({ ...form, state: v })}>
+                <SelectTrigger><SelectValue placeholder={t('राज्य चुनें', 'Select state')} /></SelectTrigger>
+                <SelectContent>
+                  {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Ruler className="h-3 w-3" />{t('न्यूनतम क्षेत्रफल (बीघा)', 'Min Area (Bigha)')}</label>
+              <Input
+                type="number"
+                placeholder="5"
+                value={form.areaMin}
+                onChange={(e) => setForm({ ...form, areaMin: e.target.value })}
+                min={0}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><IndianRupee className="h-3 w-3" />{t('न्यूनतम बजट', 'Min Budget (₹)')}</label>
+              <Input
+                type="number"
+                placeholder="500000"
+                value={form.budgetMin}
+                onChange={(e) => setForm({ ...form, budgetMin: e.target.value })}
+                min={0}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><IndianRupee className="h-3 w-3" />{t('अधिकतम बजट', 'Max Budget (₹)')}</label>
+              <Input
+                type="number"
+                placeholder="5000000"
+                value={form.budgetMax}
+                onChange={(e) => setForm({ ...form, budgetMax: e.target.value })}
+                min={0}
+              />
+            </div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('अतिरिक्त जानकारी', 'Additional Details')}</label>
+              <Textarea
+                placeholder={t('कोई विशेष ज़रूरत...', 'Any specific requirements...')}
+                value={form.message}
+                onChange={(e) => setForm({ ...form, message: e.target.value })}
+                maxLength={500}
+                rows={3}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 h-12 text-base font-semibold">
+                <Send className="h-4 w-4 mr-2" />
+                {t('क्वेरी भेजें', 'Submit Query')}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      {/* Available Properties */}
+      <section className="container mx-auto px-4 py-10">
+        <h2 className="text-2xl md:text-3xl font-bold mb-6">
+          {t('उपलब्ध भूमि', 'Available Properties')}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allProperties.map((property) => (
+            <Link key={property.id} to={`/property/${property.id}`}>
+              <Card className="overflow-hidden hover:shadow-xl transition-all group cursor-pointer border-0 shadow-md hover:-translate-y-1">
+                <div className="relative h-44 overflow-hidden">
+                  <img
+                    src={property.images[0]}
+                    alt={lang === 'hi' ? property.title : property.titleEn}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  {property.verified && (
+                    <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      {t('सत्यापित', 'Verified')}
+                    </Badge>
+                  )}
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-sm mb-1 line-clamp-1">
+                    {lang === 'hi' ? property.title : property.titleEn}
+                  </h3>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                    <MapPin className="h-3 w-3" />
+                    {property.district}, {property.state}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-primary">
+                      {priceFmt(Math.round(property.askingPrice / property.area))}
+                      <span className="text-xs font-normal text-muted-foreground">/{t('बीघा', 'Bigha')}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {property.area} {property.areaUnit === 'bigha' ? t('बीघा', 'Bigha') : t('एकड़', 'Acre')}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </AppLayout>
+  );
+};
+
+export default BuyerLanding;
