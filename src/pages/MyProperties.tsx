@@ -8,11 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import { MapPin, Edit, Eye, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { MapPin, Edit, Eye, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2, Image, Video, FileText, ExternalLink } from 'lucide-react';
+import { states } from '@/data/mockProperties';
 
 const MyProperties = () => {
   const { t, lang } = useLanguage();
@@ -44,17 +48,31 @@ const MyProperties = () => {
     setEditForm({
       title: p.title,
       title_en: p.title_en,
-      asking_price: p.asking_price,
+      state: p.state,
+      district: p.district,
+      tehsil: p.tehsil,
+      village: p.village,
+      land_type: p.land_type,
+      category: p.category,
       area: p.area,
+      area_unit: p.area_unit,
+      khasra_number: p.khasra_number,
+      asking_price: p.asking_price,
+      negotiable: p.negotiable,
+      owner_type: p.owner_type,
       owner_name: p.owner_name,
       owner_phone: p.owner_phone,
+      images: p.images || [],
+      video_url: p.video_url,
+      document_url: p.document_url,
     });
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
     setSaving(true);
-    const { error } = await supabase.from('properties').update(editForm).eq('id', editingId);
+    const { images, video_url, document_url, ...editableFields } = editForm;
+    const { error } = await supabase.from('properties').update(editableFields).eq('id', editingId);
     setSaving(false);
     if (error) {
       toast.error(t('अपडेट विफल', 'Update failed'));
@@ -114,7 +132,6 @@ const MyProperties = () => {
                 <Card key={p.id} className="border-0 shadow-md">
                   <CardContent className="p-4">
                     <div className="flex flex-col md:flex-row md:items-start gap-4">
-                      {/* Image */}
                       {p.images?.[0] && (
                         <img src={p.images[0]} alt={p.title} className="w-full md:w-32 h-24 object-cover rounded-lg" loading="lazy" />
                       )}
@@ -147,22 +164,150 @@ const MyProperties = () => {
                               <Edit className="h-4 w-4 mr-1" />{t('बदलें', 'Edit')}
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="max-w-2xl max-h-[90vh]">
                             <DialogHeader>
                               <DialogTitle>{t('भूमि संपादित करें', 'Edit Property')}</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-3">
-                              <div><Label>{t('शीर्षक (हिंदी)', 'Title (Hindi)')}</Label><Input value={editForm.title || ''} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} /></div>
-                              <div><Label>{t('शीर्षक (English)', 'Title (English)')}</Label><Input value={editForm.title_en || ''} onChange={(e) => setEditForm({ ...editForm, title_en: e.target.value })} /></div>
-                              <div><Label>{t('कीमत (₹)', 'Price (₹)')}</Label><Input type="number" value={editForm.asking_price || ''} onChange={(e) => setEditForm({ ...editForm, asking_price: parseFloat(e.target.value) })} /></div>
-                              <div><Label>{t('क्षेत्रफल', 'Area')}</Label><Input type="number" value={editForm.area || ''} onChange={(e) => setEditForm({ ...editForm, area: parseFloat(e.target.value) })} /></div>
-                              <div><Label>{t('मालिक नाम', 'Owner Name')}</Label><Input value={editForm.owner_name || ''} onChange={(e) => setEditForm({ ...editForm, owner_name: e.target.value })} /></div>
-                              <div><Label>{t('मालिक फ़ोन', 'Owner Phone')}</Label><Input value={editForm.owner_phone || ''} onChange={(e) => setEditForm({ ...editForm, owner_phone: e.target.value })} /></div>
-                              <Button className="w-full bg-primary text-primary-foreground" onClick={saveEdit} disabled={saving}>
-                                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                                {t('सेव करें', 'Save Changes')}
-                              </Button>
-                            </div>
+                            <ScrollArea className="max-h-[70vh] pr-4">
+                              <div className="space-y-4">
+                                {/* Titles */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div><Label>{t('शीर्षक (हिंदी)', 'Title (Hindi)')}</Label><Input value={editForm.title || ''} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} /></div>
+                                  <div><Label>{t('शीर्षक (English)', 'Title (English)')}</Label><Input value={editForm.title_en || ''} onChange={(e) => setEditForm({ ...editForm, title_en: e.target.value })} /></div>
+                                </div>
+
+                                {/* Location */}
+                                <h3 className="font-semibold text-sm text-muted-foreground pt-2">{t('स्थान', 'Location')}</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label>{t('राज्य', 'State')}</Label>
+                                    <Select value={editForm.state || ''} onValueChange={(v) => setEditForm({ ...editForm, state: v })}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div><Label>{t('जिला', 'District')}</Label><Input value={editForm.district || ''} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })} /></div>
+                                  <div><Label>{t('तहसील', 'Tehsil')}</Label><Input value={editForm.tehsil || ''} onChange={(e) => setEditForm({ ...editForm, tehsil: e.target.value })} /></div>
+                                  <div><Label>{t('गाँव', 'Village')}</Label><Input value={editForm.village || ''} onChange={(e) => setEditForm({ ...editForm, village: e.target.value })} /></div>
+                                </div>
+
+                                {/* Land Details */}
+                                <h3 className="font-semibold text-sm text-muted-foreground pt-2">{t('भूमि विवरण', 'Land Details')}</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label>{t('भूमि प्रकार', 'Land Type')}</Label>
+                                    <Select value={editForm.land_type || 'irrigated'} onValueChange={(v) => setEditForm({ ...editForm, land_type: v })}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="irrigated">{t('सिंचित', 'Irrigated')}</SelectItem>
+                                        <SelectItem value="non-irrigated">{t('गैर-सिंचित', 'Non-Irrigated')}</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label>{t('श्रेणी', 'Category')}</Label>
+                                    <Select value={editForm.category || 'General'} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="General">General</SelectItem>
+                                        <SelectItem value="SC">SC</SelectItem>
+                                        <SelectItem value="ST">ST</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div><Label>{t('क्षेत्रफल', 'Area')}</Label><Input type="number" value={editForm.area || ''} onChange={(e) => setEditForm({ ...editForm, area: parseFloat(e.target.value) })} /></div>
+                                  <div>
+                                    <Label>{t('इकाई', 'Unit')}</Label>
+                                    <Select value={editForm.area_unit || 'bigha'} onValueChange={(v) => setEditForm({ ...editForm, area_unit: v })}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="bigha">{t('बीघा', 'Bigha')}</SelectItem>
+                                        <SelectItem value="acre">{t('एकड़', 'Acre')}</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div><Label>{t('खसरा नंबर', 'Khasra Number')}</Label><Input value={editForm.khasra_number || ''} onChange={(e) => setEditForm({ ...editForm, khasra_number: e.target.value })} /></div>
+
+                                {/* Price */}
+                                <h3 className="font-semibold text-sm text-muted-foreground pt-2">{t('कीमत', 'Pricing')}</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div><Label>{t('माँगी गई कीमत (₹)', 'Asking Price (₹)')}</Label><Input type="number" value={editForm.asking_price || ''} onChange={(e) => setEditForm({ ...editForm, asking_price: parseFloat(e.target.value) })} /></div>
+                                  <div className="flex items-center gap-3 pt-6">
+                                    <Label>{t('मोलभाव योग्य', 'Negotiable')}</Label>
+                                    <Switch checked={editForm.negotiable || false} onCheckedChange={(v) => setEditForm({ ...editForm, negotiable: v })} />
+                                  </div>
+                                </div>
+
+                                {/* Owner Info */}
+                                <h3 className="font-semibold text-sm text-muted-foreground pt-2">{t('मालिक जानकारी', 'Owner Info')}</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label>{t('मालिक प्रकार', 'Owner Type')}</Label>
+                                    <Select value={editForm.owner_type || 'owner'} onValueChange={(v) => setEditForm({ ...editForm, owner_type: v })}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="owner">{t('मालिक', 'Owner')}</SelectItem>
+                                        <SelectItem value="broker">{t('ब्रोकर', 'Broker')}</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div><Label>{t('मालिक नाम', 'Owner Name')}</Label><Input value={editForm.owner_name || ''} onChange={(e) => setEditForm({ ...editForm, owner_name: e.target.value })} /></div>
+                                </div>
+                                <div><Label>{t('मालिक फ़ोन', 'Owner Phone')}</Label><Input value={editForm.owner_phone || ''} onChange={(e) => setEditForm({ ...editForm, owner_phone: e.target.value })} /></div>
+
+                                {/* Media (read-only display) */}
+                                <h3 className="font-semibold text-sm text-muted-foreground pt-2">{t('मीडिया फ़ाइलें', 'Media Files')}</h3>
+
+                                {/* Photos */}
+                                {editForm.images?.length > 0 && (
+                                  <div>
+                                    <Label className="flex items-center gap-1 mb-2"><Image className="h-4 w-4" />{t('फ़ोटो', 'Photos')} ({editForm.images.length})</Label>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                      {editForm.images.map((url: string, i: number) => (
+                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                          <img src={url} alt={`Photo ${i + 1}`} className="w-full h-20 object-cover rounded-lg border border-border hover:ring-2 hover:ring-primary transition-all" loading="lazy" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Video */}
+                                {editForm.video_url && (
+                                  <div>
+                                    <Label className="flex items-center gap-1 mb-2"><Video className="h-4 w-4" />{t('वीडियो', 'Video')}</Label>
+                                    <a href={editForm.video_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-muted p-2 rounded">
+                                      <Video className="h-4 w-4" />
+                                      {t('वीडियो देखें', 'View Video')}
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  </div>
+                                )}
+
+                                {/* Document */}
+                                {editForm.document_url && (
+                                  <div>
+                                    <Label className="flex items-center gap-1 mb-2"><FileText className="h-4 w-4" />{t('दस्तावेज़', 'Document')}</Label>
+                                    <a href={editForm.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-muted p-2 rounded">
+                                      <FileText className="h-4 w-4" />
+                                      {t('दस्तावेज़ देखें', 'View Document')}
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  </div>
+                                )}
+
+                                {!editForm.images?.length && !editForm.video_url && !editForm.document_url && (
+                                  <p className="text-sm text-muted-foreground">{t('कोई मीडिया अपलोड नहीं हुई', 'No media uploaded')}</p>
+                                )}
+
+                                <Button className="w-full bg-primary text-primary-foreground mt-4" onClick={saveEdit} disabled={saving}>
+                                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                  {t('सेव करें', 'Save Changes')}
+                                </Button>
+                              </div>
+                            </ScrollArea>
                           </DialogContent>
                         </Dialog>
                       </div>
