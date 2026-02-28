@@ -29,9 +29,9 @@ const PostProperty = () => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [videos, setVideos] = useState<File[]>([]);
-  const [documents, setDocuments] = useState<File[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [documentUrls, setDocumentUrls] = useState<string[]>([]);
   const [form, setForm] = useState({
     state: '', district: '', tehsil: '', village: '',
     landType: 'irrigated', category: 'General', area: '', areaUnit: 'bigha',
@@ -88,6 +88,9 @@ const PostProperty = () => {
       khasra_number: form.khasraNumber, asking_price: parseFloat(form.askingPrice) || 0,
       negotiable: form.negotiable, owner_type: form.ownerType,
       owner_name: form.ownerName, owner_phone: form.ownerPhone,
+      images: photoUrls.length > 0 ? photoUrls : null,
+      video_url: videoUrls[0] || null,
+      document_url: documentUrls[0] || null,
     });
     setLoading(false);
     if (error) {
@@ -172,9 +175,9 @@ const PostProperty = () => {
 
             {step === 2 && (
               <div className="space-y-4">
-                <FileUpload type="image" maxFiles={10} files={photos} onFilesChange={setPhotos} />
-                <FileUpload type="video" maxFiles={1} files={videos} onFilesChange={setVideos} />
-                <FileUpload type="document" maxFiles={1} files={documents} onFilesChange={setDocuments} />
+                <FileUpload type="image" maxFiles={10} uploadedUrls={photoUrls} onUrlsChange={setPhotoUrls} />
+                <FileUpload type="video" maxFiles={1} uploadedUrls={videoUrls} onUrlsChange={setVideoUrls} />
+                <FileUpload type="document" maxFiles={1} uploadedUrls={documentUrls} onUrlsChange={setDocumentUrls} />
               </div>
             )}
 
