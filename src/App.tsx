@@ -14,6 +14,8 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Subscriptions from "./pages/Subscriptions";
+import AdminDashboard from "./pages/AdminDashboard";
+import MyProperties from "./pages/MyProperties";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +38,8 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/subscriptions" element={<Subscriptions />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/my-properties" element={<MyProperties />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
