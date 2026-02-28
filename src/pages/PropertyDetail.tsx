@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { mockProperties, formatPrice, formatPriceEn } from '@/data/mockProperties';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, CheckCircle2, Clock, Phone, User, Ruler, Tag, FileText, Heart, CalendarDays, Loader2, Crown, Link as LinkIcon, Copy } from 'lucide-react';
+import { MapPin, CheckCircle2, Clock, Phone, User, Ruler, Tag, FileText, Heart, Eye, CalendarDays, Loader2, Crown, Link as LinkIcon, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,7 +23,9 @@ const PropertyDetail = () => {
   const [dbProperty, setDbProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [interestLoading, setInterestLoading] = useState(false);
-  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
+  const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [hasActivePayment, setHasActivePayment] = useState(false);
   const [privateLink, setPrivateLink] = useState<string | null>(null);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
 
@@ -32,15 +34,33 @@ const PropertyDetail = () => {
   useEffect(() => {
     if (mockProperty) {
       setLoading(false);
-      return;
+    } else {
+      const fetchProperty = async () => {
+        const { data } = await supabase.from('properties').select('*').eq('id', id!).maybeSingle();
+        setDbProperty(data);
+        setLoading(false);
+      };
+      fetchProperty();
     }
-    const fetchProperty = async () => {
-      const { data } = await supabase.from('properties').select('*').eq('id', id!).maybeSingle();
-      setDbProperty(data);
-      setLoading(false);
-    };
-    fetchProperty();
   }, [id, mockProperty]);
+
+  // Check if user has active payment for this property
+  useEffect(() => {
+    const checkPayment = async () => {
+      if (!user || !id) return;
+      const propertyId = mockProperty ? mockProperty.id : id;
+      const { data } = await supabase
+        .from('property_payments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId)
+        .eq('status', 'active');
+
+      const active = data && data.some(p => new Date(p.expires_at) > new Date());
+      setHasActivePayment(!!active);
+    };
+    checkPayment();
+  }, [user, id, mockProperty]);
 
   const handleShowInterest = async () => {
     if (!user) {
@@ -48,38 +68,87 @@ const PropertyDetail = () => {
       navigate('/login');
       return;
     }
+    setShowPaymentPrompt(true);
+  };
 
-    setInterestLoading(true);
+  const handlePayment = async () => {
+    if (!user) return;
+    setPaymentProcessing(true);
 
-    // Check if user has an active premium subscription (buyer premium)
-    const { data: subs } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .eq('plan_type', 'buyer')
-      .eq('plan_tier', 'premium');
-
-    const hasActivePremium = subs && subs.length > 0 && subs.some(s => {
-      if (!s.expires_at) return true;
-      return new Date(s.expires_at) > new Date();
-    });
-
-    if (!hasActivePremium) {
-      setInterestLoading(false);
-      setShowSubscriptionPrompt(true);
-      return;
-    }
-
-    // Generate private link
     const propertyId = mockProperty ? mockProperty.id : dbProperty?.id;
     if (!propertyId) {
-      setInterestLoading(false);
+      setPaymentProcessing(false);
       toast.error(t('प्रॉपर्टी नहीं मिली', 'Property not found'));
       return;
     }
 
-    // Check if link already exists
+    // Simulate payment delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const { error } = await supabase.from('property_payments').insert({
+      user_id: user.id,
+      property_id: propertyId,
+      amount: 1000,
+    });
+
+    if (error) {
+      setPaymentProcessing(false);
+      toast.error(t('भुगतान विफल', 'Payment failed'), { description: error.message });
+      return;
+    }
+
+    // Also record interest
+    try {
+      await supabase.from('interests').insert({
+        property_id: propertyId,
+        buyer_id: user.id,
+        type: 'interest',
+      });
+    } catch {}
+
+    // Generate private link
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const { data: existingLink } = await supabase
+      .from('private_links')
+      .select('token')
+      .eq('property_id', propertyId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let link: string;
+    if (existingLink) {
+      link = `${window.location.origin}/p/${existingLink.token}`;
+    } else {
+      const { data: newLink } = await supabase
+        .from('private_links')
+        .insert({
+          property_id: propertyId,
+          user_id: user.id,
+          phone_number: profile?.phone || '',
+        })
+        .select('token')
+        .single();
+      link = newLink ? `${window.location.origin}/p/${newLink.token}` : '';
+    }
+
+    setPaymentProcessing(false);
+    setShowPaymentPrompt(false);
+    setHasActivePayment(true);
+    setPrivateLink(link);
+    setShowLinkDialog(true);
+    toast.success(t('✅ भुगतान सफल!', '✅ Payment successful!'));
+  };
+
+  const handleView = async () => {
+    if (!user) return;
+    const propertyId = mockProperty ? mockProperty.id : dbProperty?.id;
+    if (!propertyId) return;
+
     const { data: existingLink } = await supabase
       .from('private_links')
       .select('token')
@@ -91,45 +160,7 @@ const PropertyDetail = () => {
       const link = `${window.location.origin}/p/${existingLink.token}`;
       setPrivateLink(link);
       setShowLinkDialog(true);
-      setInterestLoading(false);
-      return;
     }
-
-    // Get user's phone from profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('phone')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const { data: newLink, error } = await supabase
-      .from('private_links')
-      .insert({
-        property_id: propertyId,
-        user_id: user.id,
-        phone_number: profile?.phone || '',
-      })
-      .select('token')
-      .single();
-
-    setInterestLoading(false);
-
-    if (error) {
-      toast.error(t('लिंक बनाने में विफल', 'Failed to create link'), { description: error.message });
-      return;
-    }
-
-    // Also record interest
-    await supabase.from('interests').insert({
-      property_id: propertyId,
-      buyer_id: user.id,
-      type: 'interest',
-    });
-
-    const link = `${window.location.origin}/p/${newLink.token}`;
-    setPrivateLink(link);
-    setShowLinkDialog(true);
-    toast.success(t('🔗 प्राइवेट लिंक बन गया!', '🔗 Private link created!'));
   };
 
   const copyLink = () => {
@@ -265,35 +296,28 @@ const PropertyDetail = () => {
             </Card>
           </div>
 
-          {/* Owner card & actions */}
+          {/* Actions */}
           <div className="space-y-4">
             <Card className="border-0 shadow-md">
               <CardContent className="p-5">
-                <h2 className="font-bold text-lg mb-3">{t('संपर्क जानकारी', 'Contact Info')}</h2>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">{property.ownerName}</div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Phone className="h-3 w-3" />{property.ownerPhone}
-                    </div>
-                  </div>
-                </div>
                 <div className="space-y-2">
-                  <Button
-                    className="w-full bg-primary text-primary-foreground"
-                    onClick={handleShowInterest}
-                    disabled={interestLoading}
-                  >
-                    {interestLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
+                  {hasActivePayment ? (
+                    <Button
+                      className="w-full bg-primary text-primary-foreground"
+                      onClick={handleView}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      {t('देखें', 'View')}
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full bg-primary text-primary-foreground"
+                      onClick={handleShowInterest}
+                    >
                       <Heart className="h-4 w-4 mr-2" />
-                    )}
-                    {t('रुचि दिखाएँ', 'Show Interest')}
-                  </Button>
+                      {t('रुचि दिखाएँ', 'Show Interest')}
+                    </Button>
+                  )}
                   <Button variant="outline" className="w-full" onClick={() => toast.success(t('मीटिंग अनुरोध भेजा गया!', 'Meeting request sent!'))}>
                     <CalendarDays className="h-4 w-4 mr-2" />
                     {t('मालिक से मीटिंग अनुरोध करें', 'Request Meeting')}
@@ -305,36 +329,42 @@ const PropertyDetail = () => {
         </div>
       </div>
 
-      {/* Subscription Prompt Dialog */}
-      <Dialog open={showSubscriptionPrompt} onOpenChange={setShowSubscriptionPrompt}>
+      {/* Payment Prompt Dialog */}
+      <Dialog open={showPaymentPrompt} onOpenChange={setShowPaymentPrompt}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-primary" />
-              {t('प्रीमियम सब्सक्रिप्शन आवश्यक', 'Premium Subscription Required')}
+              {t('प्रॉपर्टी अनलॉक करें', 'Unlock Property')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {t(
-                'प्रॉपर्टी की पूरी जानकारी देखने के लिए Buyer Premium (₹99/माह) सब्सक्रिप्शन लें। इसमें आपको प्राइवेट लिंक मिलेगा जो केवल आपके मोबाइल नंबर से खुलेगा।',
-                'Get a Buyer Premium subscription (₹99/mo) to view full property details. You\'ll get a private link that only works with your registered mobile number.'
+                'इस प्रॉपर्टी की पूरी जानकारी देखने के लिए ₹1,000 का भुगतान करें। यह 1 महीने के लिए वैध होगा।',
+                'Pay ₹1,000 to unlock full details of this property. Valid for 1 month.'
               )}
             </p>
             <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('असीमित संपर्क', 'Unlimited contacts')}</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('प्राइवेट प्रॉपर्टी लिंक', 'Private property links')}</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('प्राथमिकता सहायता', 'Priority support')}</div>
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('पूरी संपर्क जानकारी', 'Full contact details')}</div>
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('प्राइवेट प्रॉपर्टी लिंक', 'Private property link')}</div>
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t('1 महीने की वैधता', '1 month validity')}</div>
+            </div>
+            <div className="text-center">
+              <span className="text-2xl font-bold text-primary">₹1,000</span>
+              <span className="text-sm text-muted-foreground ml-2">/ {t('1 महीना', '1 month')}</span>
             </div>
             <Button
               className="w-full bg-primary text-primary-foreground"
-              onClick={() => {
-                setShowSubscriptionPrompt(false);
-                navigate('/subscriptions');
-              }}
+              onClick={handlePayment}
+              disabled={paymentProcessing}
             >
-              <Crown className="h-4 w-4 mr-2" />
-              {t('सब्सक्रिप्शन प्लान देखें', 'View Subscription Plans')}
+              {paymentProcessing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Crown className="h-4 w-4 mr-2" />
+              )}
+              {paymentProcessing ? t('भुगतान हो रहा है...', 'Processing...') : t('अभी भुगतान करें', 'Pay Now')}
             </Button>
           </div>
         </DialogContent>

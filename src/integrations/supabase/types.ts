@@ -382,6 +382,36 @@ export type Database = {
         }
         Relationships: []
       }
+      property_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          expires_at: string
+          id: string
+          property_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          property_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          property_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
