@@ -203,7 +203,7 @@ const PropertyDetail = () => {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1">{lang === 'hi' ? property.title : property.titleEn}</h1>
             <p className="text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-4 w-4" /> {property.village}, {property.tehsil}, {property.district}, {property.state}
+              <MapPin className="h-4 w-4" /> {property.tehsil}, {property.district}, {property.state}
             </p>
           </div>
           {property.verified ? null : (
