@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sprout, UserPlus, Phone, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
@@ -121,6 +122,22 @@ const Register = () => {
                 <div>
                   <Label>{t('जिला', 'District')}</Label>
                   <Input value={form.district} onChange={(e) => update('district', e.target.value)} required placeholder={t('जिला लिखें', 'Enter district')} />
+                </div>
+                <div>
+                  <Label className="mb-2 block">{t('आप क्या हैं?', 'You are?')}</Label>
+                  <RadioGroup value={form.role} onValueChange={(v) => update('role', v)} className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'buyer', label: t('खरीदार', 'Buyer') },
+                      { value: 'seller', label: t('विक्रेता', 'Seller') },
+                      { value: 'agent', label: t('एजेंट', 'List as Agent') },
+                      { value: 'team', label: t('टीम मेंबर', 'Become Team Member') },
+                    ].map((opt) => (
+                      <Label key={opt.value} className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-colors ${form.role === opt.value ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                        <RadioGroupItem value={opt.value} />
+                        <span className="text-sm font-medium">{opt.label}</span>
+                      </Label>
+                    ))}
+                  </RadioGroup>
                 </div>
                 <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
                   <UserPlus className="h-4 w-4 mr-2" />
