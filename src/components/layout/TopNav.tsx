@@ -2,6 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import { Globe, Sprout } from 'lucide-react';
+import NotificationBell from '@/components/NotificationBell';
 
 const navItems = [
   { path: '/', hi: 'होम', en: 'Home' },
@@ -40,15 +41,18 @@ const TopNav = () => {
         ))}
       </nav>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={toggle}
-        className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-      >
-        <Globe className="h-4 w-4 mr-1" />
-        {lang === 'hi' ? 'EN' : 'हिं'}
-      </Button>
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggle}
+          className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
+        >
+          <Globe className="h-4 w-4 mr-1" />
+          {lang === 'hi' ? 'EN' : 'हिं'}
+        </Button>
+      </div>
     </header>
   );
 };
