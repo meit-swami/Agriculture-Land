@@ -36,6 +36,10 @@ const BuyerLanding = () => {
   const [filterDistrict, setFilterDistrict] = useState('all');
   const [filterLandType, setFilterLandType] = useState('all');
   const [filterBudgetMax, setFilterBudgetMax] = useState('');
+  const [budgetUnit, setBudgetUnit] = useState<'bigha' | 'acre'>('bigha');
+
+  // 1 Acre = 5 Bigha (standard conversion)
+  const BIGHA_PER_ACRE = 5;
 
   const availableDistricts = useMemo(() => {
     const source = filterState !== 'all' ? mockProperties.filter((p) => p.state === filterState) : mockProperties;
@@ -47,16 +51,28 @@ const BuyerLanding = () => {
       if (filterState !== 'all' && p.state !== filterState) return false;
       if (filterDistrict !== 'all' && p.district !== filterDistrict) return false;
       if (filterLandType !== 'all' && p.landType !== filterLandType) return false;
-      if (filterBudgetMax && p.askingPrice > Number(filterBudgetMax)) return false;
+      if (filterBudgetMax) {
+        // Price per bigha from property
+        const pricePerBigha = p.area > 0 ? p.askingPrice / p.area : 0;
+        const budgetVal = Number(filterBudgetMax);
+        if (budgetUnit === 'acre') {
+          // Convert entered per-acre budget to per-bigha for comparison
+          const perBigha = budgetVal / BIGHA_PER_ACRE;
+          if (pricePerBigha > perBigha) return false;
+        } else {
+          if (pricePerBigha > budgetVal) return false;
+        }
+      }
       return true;
     });
-  }, [filterState, filterDistrict, filterLandType, filterBudgetMax]);
+  }, [filterState, filterDistrict, filterLandType, filterBudgetMax, budgetUnit]);
 
   const clearFilters = () => {
     setFilterState('all');
     setFilterDistrict('all');
     setFilterLandType('all');
     setFilterBudgetMax('');
+    setBudgetUnit('bigha');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,8 +208,42 @@ const BuyerLanding = () => {
                       </Select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('अधिकतम बजट ₹', 'Max Budget ₹')}</label>
-                      <Input type="number" placeholder="5000000" value={filterBudgetMax} onChange={(e) => setFilterBudgetMax(e.target.value)} className="bg-card" min={0} />
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        {t('अधिकतम बजट ₹', 'Max Budget ₹')} / {budgetUnit === 'bigha' ? t('बीघा', 'Bigha') : t('एकड़', 'Acre')}
+                      </label>
+                      <Input type="number" placeholder={budgetUnit === 'bigha' ? '500000' : '2500000'} value={filterBudgetMax} onChange={(e) => setFilterBudgetMax(e.target.value)} className="bg-card" min={0} />
+                      <div className="flex items-center gap-3 mt-2">
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                          <input
+                            type="radio"
+                            name="budgetUnit"
+                            checked={budgetUnit === 'bigha'}
+                            onChange={() => {
+                              if (budgetUnit === 'acre' && filterBudgetMax) {
+                                setFilterBudgetMax(String(Math.round(Number(filterBudgetMax) / BIGHA_PER_ACRE)));
+                              }
+                              setBudgetUnit('bigha');
+                            }}
+                            className="accent-primary"
+                          />
+                          {t('प्रति बीघा', 'Per Bigha')}
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                          <input
+                            type="radio"
+                            name="budgetUnit"
+                            checked={budgetUnit === 'acre'}
+                            onChange={() => {
+                              if (budgetUnit === 'bigha' && filterBudgetMax) {
+                                setFilterBudgetMax(String(Math.round(Number(filterBudgetMax) * BIGHA_PER_ACRE)));
+                              }
+                              setBudgetUnit('acre');
+                            }}
+                            className="accent-primary"
+                          />
+                          {t('प्रति एकड़', 'Per Acre')}
+                        </label>
+                      </div>
                     </div>
                     {(filterState !== 'all' || filterDistrict !== 'all' || filterLandType !== 'all' || filterBudgetMax) && (
                       <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full text-destructive">{t('फ़िल्टर हटाएं', 'Clear Filters')}</Button>
