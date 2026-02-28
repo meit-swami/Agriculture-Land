@@ -229,7 +229,6 @@ const PropertyDetail = () => {
                   {[
                     { icon: Tag, label: t('भूमि प्रकार', 'Land Type'), value: property.landType === 'irrigated' ? t('सिंचित', 'Irrigated') : t('गैर-सिंचित', 'Non-Irrigated') },
                     { icon: Tag, label: t('श्रेणी', 'Category'), value: property.category },
-                    { icon: User, label: t('प्रकार', 'Type'), value: property.ownerType === 'owner' ? t('मालिक', 'Owner') : t('ब्रोकर', 'Broker') },
                   ].map((item) => (
                     <div key={item.label} className="flex items-start gap-2">
                       <item.icon className="h-4 w-4 text-primary mt-0.5" />
