@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AppLayout from '@/components/layout/AppLayout';
 import Footer from '@/components/layout/Footer';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { mockProperties, states, formatPrice, formatPriceEn, Property } from '@/data/mockProperties';
+import { getRajasthanDistricts, getTehsilsForDistrict } from '@/data/rajasthanData';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, CheckCircle2, Clock, Filter, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -43,7 +44,9 @@ const Browse = () => {
   const { t, lang } = useLanguage();
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ state: '', verifiedOnly: false, sortBy: 'date' });
+  const [filters, setFilters] = useState({ state: '', district: '', verifiedOnly: false, sortBy: 'date' });
+  const isRajasthan = filters.state === 'राजस्थान';
+  const districtOptions = useMemo(() => isRajasthan ? getRajasthanDistricts() : [], [isRajasthan]);
   const [dbProperties, setDbProperties] = useState<(Property & { isDb?: boolean })[]>([]);
   const [cardPriceUnit, setCardPriceUnit] = useState<'bigha' | 'acre'>('bigha');
   const BIGHA_PER_ACRE = 5;
@@ -64,6 +67,7 @@ const Browse = () => {
   const filtered = useMemo(() => {
     let list = [...allProperties];
     if (filters.state && filters.state !== 'all') list = list.filter((p) => p.state === filters.state);
+    if (filters.district) list = list.filter((p) => p.district === filters.district);
     if (filters.verifiedOnly) list = list.filter((p) => p.verified);
     if (filters.sortBy === 'price-asc') list.sort((a, b) => a.askingPrice - b.askingPrice);
     if (filters.sortBy === 'price-desc') list.sort((a, b) => b.askingPrice - a.askingPrice);
@@ -89,7 +93,7 @@ const Browse = () => {
               <CardContent className="p-4 space-y-4">
                 <div>
                   <Label>{t('राज्य', 'State')}</Label>
-                  <Select value={filters.state} onValueChange={(v) => setFilters((f) => ({ ...f, state: v }))}>
+                  <Select value={filters.state} onValueChange={(v) => setFilters((f) => ({ ...f, state: v, district: '' }))}>
                     <SelectTrigger><SelectValue placeholder={t('सभी राज्य', 'All States')} /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('सभी', 'All')}</SelectItem>
@@ -97,6 +101,18 @@ const Browse = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                {isRajasthan && (
+                  <div>
+                    <Label>{t('जिला', 'District')}</Label>
+                    <Select value={filters.district} onValueChange={(v) => setFilters((f) => ({ ...f, district: v === 'all' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder={t('सभी जिले', 'All Districts')} /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('सभी', 'All')}</SelectItem>
+                        {districtOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label>{t('क्रमबद्ध करें', 'Sort By')}</Label>
                   <Select value={filters.sortBy} onValueChange={(v) => setFilters((f) => ({ ...f, sortBy: v }))}>
@@ -113,7 +129,7 @@ const Browse = () => {
                   <Label>{t('केवल सत्यापित', 'Verified Only')}</Label>
                   <Switch checked={filters.verifiedOnly} onCheckedChange={(v) => setFilters((f) => ({ ...f, verifiedOnly: v }))} />
                 </div>
-                <Button variant="outline" size="sm" className="w-full" onClick={() => setFilters({ state: '', verifiedOnly: false, sortBy: 'date' })}>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setFilters({ state: '', district: '', verifiedOnly: false, sortBy: 'date' })}>
                   {t('फ़िल्टर रीसेट करें', 'Reset Filters')}
                 </Button>
               </CardContent>
