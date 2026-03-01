@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
+import { roleOptions, stateOptions } from '@/data/selectOptions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
@@ -670,19 +671,13 @@ const AdminDashboard = () => {
           <div className="space-y-3">
             <div><Label>{t('नाम', 'Name')}</Label><Input value={editUserForm.full_name || ''} onChange={(e) => setEditUserForm({ ...editUserForm, full_name: e.target.value })} /></div>
             <div><Label>{t('फ़ोन', 'Phone')}</Label><Input value={editUserForm.phone || ''} onChange={(e) => setEditUserForm({ ...editUserForm, phone: e.target.value })} /></div>
-            <div><Label>{t('राज्य', 'State')}</Label><Input value={editUserForm.state || ''} onChange={(e) => setEditUserForm({ ...editUserForm, state: e.target.value })} /></div>
+            <div><Label>{t('राज्य', 'State')}</Label>
+              <SearchableSelect options={stateOptions} value={editUserForm.state || ''} onValueChange={(v) => setEditUserForm({ ...editUserForm, state: v })} placeholder={t('राज्य चुनें', 'Select State')} />
+            </div>
             <div><Label>{t('जिला', 'District')}</Label><Input value={editUserForm.district || ''} onChange={(e) => setEditUserForm({ ...editUserForm, district: e.target.value })} /></div>
             <div>
               <Label>{t('भूमिका', 'Role')}</Label>
-              <Select value={editUserForm.role || 'buyer'} onValueChange={(v) => setEditUserForm({ ...editUserForm, role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="buyer">{t('खरीदार', 'Buyer')}</SelectItem>
-                  <SelectItem value="seller">{t('विक्रेता', 'Seller')}</SelectItem>
-                  <SelectItem value="agent">{t('एजेंट', 'Agent')}</SelectItem>
-                  <SelectItem value="admin">{t('एडमिन', 'Admin')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchableSelect options={roleOptions} value={editUserForm.role || 'buyer'} onValueChange={(v) => setEditUserForm({ ...editUserForm, role: v })} />
             </div>
             <Button className="w-full bg-primary text-primary-foreground" onClick={saveUser} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
 import { Switch } from '@/components/ui/switch';
-import { states } from '@/data/mockProperties';
-import { getRajasthanDistricts, getTehsilsForDistrict } from '@/data/rajasthanData';
+import { stateOptions, getDistrictOptions, getTehsilOptions, landTypeOptions, categoryOptions, areaUnitOptions, ownerTypeOptions } from '@/data/selectOptions';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
@@ -51,8 +50,8 @@ const PostProperty = () => {
   };
 
   const isRajasthan = form.state === 'राजस्थान';
-  const districtOptions = useMemo(() => isRajasthan ? getRajasthanDistricts() : [], [isRajasthan]);
-  const tehsilOptions = useMemo(() => (isRajasthan && form.district) ? getTehsilsForDistrict(form.district) : [], [isRajasthan, form.district]);
+  const districtOpts = useMemo(() => getDistrictOptions(form.state), [form.state]);
+  const tehsilOpts = useMemo(() => (form.district ? getTehsilOptions(form.district) : []), [form.district]);
 
   if (!user) {
     return (
@@ -131,27 +130,18 @@ const PostProperty = () => {
             {step === 0 && (
               <div className="space-y-4">
                 <div><Label>{t('राज्य', 'State')}</Label>
-                  <Select value={form.state} onValueChange={(v) => update('state', v)}>
-                    <SelectTrigger><SelectValue placeholder={t('राज्य चुनें', 'Select State')} /></SelectTrigger>
-                    <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <SearchableSelect options={stateOptions} value={form.state} onValueChange={(v) => update('state', v)} placeholder={t('राज्य चुनें', 'Select State')} />
                 </div>
                 <div><Label>{t('जिला', 'District')}</Label>
-                  {isRajasthan ? (
-                    <Select value={form.district} onValueChange={(v) => update('district', v)}>
-                      <SelectTrigger><SelectValue placeholder={t('जिला चुनें', 'Select District')} /></SelectTrigger>
-                      <SelectContent>{districtOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-                    </Select>
+                  {districtOpts.length > 0 ? (
+                    <SearchableSelect options={districtOpts} value={form.district} onValueChange={(v) => update('district', v)} placeholder={t('जिला चुनें', 'Select District')} />
                   ) : (
                     <Input value={form.district} onChange={(e) => update('district', e.target.value)} placeholder={t('जिला दर्ज करें', 'Enter district')} />
                   )}
                 </div>
                 <div><Label>{t('तहसील', 'Tehsil')}</Label>
-                  {isRajasthan && tehsilOptions.length > 0 ? (
-                    <Select value={form.tehsil} onValueChange={(v) => update('tehsil', v)}>
-                      <SelectTrigger><SelectValue placeholder={t('तहसील चुनें', 'Select Tehsil')} /></SelectTrigger>
-                      <SelectContent>{tehsilOptions.map((th) => <SelectItem key={th} value={th}>{th}</SelectItem>)}</SelectContent>
-                    </Select>
+                  {tehsilOpts.length > 0 ? (
+                    <SearchableSelect options={tehsilOpts} value={form.tehsil} onValueChange={(v) => update('tehsil', v)} placeholder={t('तहसील चुनें', 'Select Tehsil')} />
                   ) : (
                     <Input value={form.tehsil} onChange={(e) => update('tehsil', e.target.value)} placeholder={t('तहसील दर्ज करें', 'Enter tehsil')} />
                   )}
@@ -163,35 +153,15 @@ const PostProperty = () => {
             {step === 1 && (
               <div className="space-y-4">
                 <div><Label>{t('भूमि प्रकार', 'Land Type')}</Label>
-                  <Select value={form.landType} onValueChange={(v) => update('landType', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="irrigated">{t('सिंचित', 'Irrigated')}</SelectItem>
-                      <SelectItem value="non-irrigated">{t('गैर-सिंचित', 'Non-Irrigated')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect options={landTypeOptions} value={form.landType} onValueChange={(v) => update('landType', v)} placeholder={t('प्रकार चुनें', 'Select Type')} />
                 </div>
                 <div><Label>{t('श्रेणी', 'Category')}</Label>
-                  <Select value={form.category} onValueChange={(v) => update('category', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="General">General</SelectItem>
-                      <SelectItem value="SC">SC</SelectItem>
-                      <SelectItem value="ST">ST</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect options={categoryOptions} value={form.category} onValueChange={(v) => update('category', v)} placeholder={t('श्रेणी चुनें', 'Select Category')} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>{t('क्षेत्रफल', 'Area')}</Label><Input type="number" value={form.area} onChange={(e) => update('area', e.target.value)} /></div>
                   <div><Label>{t('इकाई', 'Unit')}</Label>
-                    <Select value={form.areaUnit} onValueChange={(v) => update('areaUnit', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bigha">{t('बीघा', 'Bigha')}</SelectItem>
-                        <SelectItem value="acre">{t('एकड़', 'Acre')}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect options={areaUnitOptions} value={form.areaUnit} onValueChange={(v) => update('areaUnit', v)} />
                   </div>
                 </div>
                 <div><Label>{t('खसरा नंबर', 'Khasra Number')}</Label><Input value={form.khasraNumber} onChange={(e) => update('khasraNumber', e.target.value)} /></div>
@@ -214,13 +184,7 @@ const PostProperty = () => {
             {step === 3 && (
               <div className="space-y-4">
                 <div><Label>{t('मालिक प्रकार', 'Owner Type')}</Label>
-                  <Select value={form.ownerType} onValueChange={(v) => update('ownerType', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="owner">{t('मालिक', 'Owner')}</SelectItem>
-                      <SelectItem value="broker">{t('ब्रोकर', 'Broker')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect options={ownerTypeOptions} value={form.ownerType} onValueChange={(v) => update('ownerType', v)} />
                 </div>
                 <div><Label>{t('नाम', 'Name')}</Label><Input value={form.ownerName} onChange={(e) => update('ownerName', e.target.value)} /></div>
                 <div><Label>{t('फ़ोन नंबर', 'Phone Number')}</Label><Input type="tel" value={form.ownerPhone} onChange={(e) => update('ownerPhone', e.target.value)} /></div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AppLayout from '@/components/layout/AppLayout';
 import Footer from '@/components/layout/Footer';
@@ -6,47 +6,36 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { mockProperties, states, formatPrice, formatPriceEn, Property } from '@/data/mockProperties';
-import { getRajasthanDistricts, getTehsilsForDistrict } from '@/data/rajasthanData';
+import { stateOptions, getDistrictOptions, sortOptions } from '@/data/selectOptions';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, CheckCircle2, Clock, Filter, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// Normalize DB property to match mock Property shape
 const normalizeDbProperty = (p: any): Property & { isDb?: boolean } => ({
-  id: p.id,
-  title: p.title,
-  titleEn: p.title_en,
-  state: p.state,
-  district: p.district,
-  tehsil: p.tehsil,
-  village: p.village,
-  landType: p.land_type,
-  category: p.category,
-  area: p.area,
-  areaUnit: p.area_unit,
-  khasraNumber: p.khasra_number,
-  askingPrice: p.asking_price,
-  negotiable: p.negotiable,
-  ownerType: p.owner_type,
-  ownerName: p.owner_name,
-  ownerPhone: p.owner_phone,
-  verified: p.verified,
+  id: p.id, title: p.title, titleEn: p.title_en, state: p.state, district: p.district,
+  tehsil: p.tehsil, village: p.village, landType: p.land_type, category: p.category,
+  area: p.area, areaUnit: p.area_unit, khasraNumber: p.khasra_number,
+  askingPrice: p.asking_price, negotiable: p.negotiable, ownerType: p.owner_type,
+  ownerName: p.owner_name, ownerPhone: p.owner_phone, verified: p.verified,
   images: p.images || ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&h=400&fit=crop'],
-  postedDate: new Date(p.created_at).toISOString().split('T')[0],
-  isDb: true,
+  postedDate: new Date(p.created_at).toISOString().split('T')[0], isDb: true,
 });
+
+const allStatesWithAll = [{ value: 'all', label: 'सभी राज्य', searchAlt: 'All States' }, ...stateOptions];
 
 const Browse = () => {
   const { t, lang } = useLanguage();
   const priceFmt = lang === 'hi' ? formatPrice : formatPriceEn;
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ state: '', district: '', verifiedOnly: false, sortBy: 'date' });
-  const isRajasthan = filters.state === 'राजस्थान';
-  const districtOptions = useMemo(() => isRajasthan ? getRajasthanDistricts() : [], [isRajasthan]);
+  const [filters, setFilters] = useState({ state: 'all', district: '', verifiedOnly: false, sortBy: 'date' });
+  const districtOpts = useMemo(() => {
+    const opts = getDistrictOptions(filters.state);
+    return opts.length > 0 ? [{ value: 'all', label: 'सभी जिले', searchAlt: 'All Districts' }, ...opts] : [];
+  }, [filters.state]);
   const [dbProperties, setDbProperties] = useState<(Property & { isDb?: boolean })[]>([]);
   const [cardPriceUnit, setCardPriceUnit] = useState<'bigha' | 'acre'>('bigha');
   const BIGHA_PER_ACRE = 5;
@@ -59,15 +48,12 @@ const Browse = () => {
     fetchDbProperties();
   }, []);
 
-  // Merge mock + DB properties, DB first
-  const allProperties = useMemo(() => {
-    return [...dbProperties, ...mockProperties];
-  }, [dbProperties]);
+  const allProperties = useMemo(() => [...dbProperties, ...mockProperties], [dbProperties]);
 
   const filtered = useMemo(() => {
     let list = [...allProperties];
     if (filters.state && filters.state !== 'all') list = list.filter((p) => p.state === filters.state);
-    if (filters.district) list = list.filter((p) => p.district === filters.district);
+    if (filters.district && filters.district !== 'all') list = list.filter((p) => p.district === filters.district);
     if (filters.verifiedOnly) list = list.filter((p) => p.verified);
     if (filters.sortBy === 'price-asc') list.sort((a, b) => a.askingPrice - b.askingPrice);
     if (filters.sortBy === 'price-desc') list.sort((a, b) => b.askingPrice - a.askingPrice);
@@ -87,75 +73,41 @@ const Browse = () => {
         </div>
 
         <div className="flex gap-6">
-          {/* Filters sidebar */}
           <aside className={`${showFilters ? 'block' : 'hidden'} md:block w-full md:w-64 shrink-0`}>
             <Card className="border-0 shadow-md">
               <CardContent className="p-4 space-y-4">
                 <div>
                   <Label>{t('राज्य', 'State')}</Label>
-                  <Select value={filters.state} onValueChange={(v) => setFilters((f) => ({ ...f, state: v, district: '' }))}>
-                    <SelectTrigger><SelectValue placeholder={t('सभी राज्य', 'All States')} /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('सभी', 'All')}</SelectItem>
-                      {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect options={allStatesWithAll} value={filters.state} onValueChange={(v) => setFilters((f) => ({ ...f, state: v, district: '' }))} placeholder={t('सभी राज्य', 'All States')} />
                 </div>
-                {isRajasthan && (
+                {districtOpts.length > 0 && (
                   <div>
                     <Label>{t('जिला', 'District')}</Label>
-                    <Select value={filters.district} onValueChange={(v) => setFilters((f) => ({ ...f, district: v === 'all' ? '' : v }))}>
-                      <SelectTrigger><SelectValue placeholder={t('सभी जिले', 'All Districts')} /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t('सभी', 'All')}</SelectItem>
-                        {districtOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect options={districtOpts} value={filters.district || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, district: v === 'all' ? '' : v }))} placeholder={t('सभी जिले', 'All Districts')} />
                   </div>
                 )}
                 <div>
                   <Label>{t('क्रमबद्ध करें', 'Sort By')}</Label>
-                  <Select value={filters.sortBy} onValueChange={(v) => setFilters((f) => ({ ...f, sortBy: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="date">{t('तारीख', 'Date')}</SelectItem>
-                      <SelectItem value="price-asc">{t('कीमत: कम से ज़्यादा', 'Price: Low to High')}</SelectItem>
-                      <SelectItem value="price-desc">{t('कीमत: ज़्यादा से कम', 'Price: High to Low')}</SelectItem>
-                      <SelectItem value="area">{t('क्षेत्रफल', 'Area')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect options={sortOptions} value={filters.sortBy} onValueChange={(v) => setFilters((f) => ({ ...f, sortBy: v }))} />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>{t('केवल सत्यापित', 'Verified Only')}</Label>
                   <Switch checked={filters.verifiedOnly} onCheckedChange={(v) => setFilters((f) => ({ ...f, verifiedOnly: v }))} />
                 </div>
-                <Button variant="outline" size="sm" className="w-full" onClick={() => setFilters({ state: '', district: '', verifiedOnly: false, sortBy: 'date' })}>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setFilters({ state: 'all', district: '', verifiedOnly: false, sortBy: 'date' })}>
                   {t('फ़िल्टर रीसेट करें', 'Reset Filters')}
                 </Button>
               </CardContent>
             </Card>
           </aside>
 
-          {/* Property grid */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">
-                {filtered.length} {t('भूमि मिली', 'properties found')}
-              </p>
+              <p className="text-sm text-muted-foreground">{filtered.length} {t('भूमि मिली', 'properties found')}</p>
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">{t('कीमत:', 'Price:')}</span>
-                <button
-                  onClick={() => setCardPriceUnit('bigha')}
-                  className={`px-2 py-1 rounded ${cardPriceUnit === 'bigha' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-                >
-                  /{t('बीघा', 'Bigha')}
-                </button>
-                <button
-                  onClick={() => setCardPriceUnit('acre')}
-                  className={`px-2 py-1 rounded ${cardPriceUnit === 'acre' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-                >
-                  /{t('एकड़', 'Acre')}
-                </button>
+                <button onClick={() => setCardPriceUnit('bigha')} className={`px-2 py-1 rounded ${cardPriceUnit === 'bigha' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>/{t('बीघा', 'Bigha')}</button>
+                <button onClick={() => setCardPriceUnit('acre')} className={`px-2 py-1 rounded ${cardPriceUnit === 'acre' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>/{t('एकड़', 'Acre')}</button>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -173,14 +125,10 @@ const Browse = () => {
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-semibold text-sm mb-1 line-clamp-1">{lang === 'hi' ? property.title : property.titleEn}</h3>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                        <MapPin className="h-3 w-3" />{property.district}, {property.state}
-                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="h-3 w-3" />{property.district}, {property.state}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-bold text-primary">
-                          {cardPriceUnit === 'acre'
-                            ? priceFmt(Math.round((property.askingPrice / property.area) * BIGHA_PER_ACRE))
-                            : priceFmt(Math.round(property.askingPrice / property.area))}
+                          {cardPriceUnit === 'acre' ? priceFmt(Math.round((property.askingPrice / property.area) * BIGHA_PER_ACRE)) : priceFmt(Math.round(property.askingPrice / property.area))}
                           <span className="text-xs font-normal text-muted-foreground">/{cardPriceUnit === 'acre' ? t('एकड़', 'Acre') : t('बीघा', 'Bigha')}</span>
                         </span>
                         <span className="text-xs text-muted-foreground">{property.area} {property.areaUnit === 'bigha' ? t('बीघा', 'Bigha') : t('एकड़', 'Acre')}</span>
