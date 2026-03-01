@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
 import { Switch } from '@/components/ui/switch';
+import { stateOptions, landTypeOptions, categoryOptions, areaUnitOptions, ownerTypeOptions } from '@/data/selectOptions';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -201,10 +202,7 @@ const MyProperties = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <Label>{t('राज्य', 'State')}</Label>
-                                    <Select value={editForm.state || ''} onValueChange={(v) => setEditForm({ ...editForm, state: v })}>
-                                      <SelectTrigger><SelectValue /></SelectTrigger>
-                                      <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                                    </Select>
+                                    <SearchableSelect options={stateOptions} value={editForm.state || ''} onValueChange={(v) => setEditForm({ ...editForm, state: v })} placeholder={t('राज्य चुनें', 'Select State')} />
                                   </div>
                                   <div><Label>{t('जिला', 'District')}</Label><Input value={editForm.district || ''} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })} /></div>
                                   <div><Label>{t('तहसील', 'Tehsil')}</Label><Input value={editForm.tehsil || ''} onChange={(e) => setEditForm({ ...editForm, tehsil: e.target.value })} /></div>
@@ -216,36 +214,16 @@ const MyProperties = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <Label>{t('भूमि प्रकार', 'Land Type')}</Label>
-                                    <Select value={editForm.land_type || 'irrigated'} onValueChange={(v) => setEditForm({ ...editForm, land_type: v })}>
-                                      <SelectTrigger><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="irrigated">{t('सिंचित', 'Irrigated')}</SelectItem>
-                                        <SelectItem value="non-irrigated">{t('गैर-सिंचित', 'Non-Irrigated')}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                    <SearchableSelect options={landTypeOptions} value={editForm.land_type || 'irrigated'} onValueChange={(v) => setEditForm({ ...editForm, land_type: v })} />
                                   </div>
                                   <div>
                                     <Label>{t('श्रेणी', 'Category')}</Label>
-                                    <Select value={editForm.category || 'General'} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
-                                      <SelectTrigger><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="General">General</SelectItem>
-                                        <SelectItem value="SC">SC</SelectItem>
-                                        <SelectItem value="ST">ST</SelectItem>
-                                        <SelectItem value="Other">Other</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                    <SearchableSelect options={categoryOptions} value={editForm.category || 'General'} onValueChange={(v) => setEditForm({ ...editForm, category: v })} />
                                   </div>
                                   <div><Label>{t('क्षेत्रफल', 'Area')}</Label><Input type="number" value={editForm.area || ''} onChange={(e) => setEditForm({ ...editForm, area: parseFloat(e.target.value) })} /></div>
                                   <div>
                                     <Label>{t('इकाई', 'Unit')}</Label>
-                                    <Select value={editForm.area_unit || 'bigha'} onValueChange={(v) => setEditForm({ ...editForm, area_unit: v })}>
-                                      <SelectTrigger><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="bigha">{t('बीघा', 'Bigha')}</SelectItem>
-                                        <SelectItem value="acre">{t('एकड़', 'Acre')}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                    <SearchableSelect options={areaUnitOptions} value={editForm.area_unit || 'bigha'} onValueChange={(v) => setEditForm({ ...editForm, area_unit: v })} />
                                   </div>
                                 </div>
                                 <div><Label>{t('खसरा नंबर', 'Khasra Number')}</Label><Input value={editForm.khasra_number || ''} onChange={(e) => setEditForm({ ...editForm, khasra_number: e.target.value })} /></div>
@@ -265,13 +243,7 @@ const MyProperties = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <Label>{t('मालिक प्रकार', 'Owner Type')}</Label>
-                                    <Select value={editForm.owner_type || 'owner'} onValueChange={(v) => setEditForm({ ...editForm, owner_type: v })}>
-                                      <SelectTrigger><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="owner">{t('मालिक', 'Owner')}</SelectItem>
-                                        <SelectItem value="broker">{t('ब्रोकर', 'Broker')}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                    <SearchableSelect options={ownerTypeOptions} value={editForm.owner_type || 'owner'} onValueChange={(v) => setEditForm({ ...editForm, owner_type: v })} />
                                   </div>
                                   <div><Label>{t('मालिक नाम', 'Owner Name')}</Label><Input value={editForm.owner_name || ''} onChange={(e) => setEditForm({ ...editForm, owner_name: e.target.value })} /></div>
                                 </div>

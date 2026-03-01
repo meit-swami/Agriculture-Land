@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { mockProperties, formatPrice, formatPriceEn, states } from '@/data/mockProperties';
+import { stateOptions, landTypeOptions } from '@/data/selectOptions';
 import {
   MapPin, CheckCircle2, Send, User, Phone, IndianRupee, Ruler,
   Filter, Droplets, Sun, ClipboardList, Building2, TrendingUp, Users,
@@ -190,34 +191,30 @@ const BuyerLanding = () => {
                   <CardContent className="p-3 space-y-3">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('राज्य', 'State')}</label>
-                      <Select value={filterState} onValueChange={(v) => { setFilterState(v); setFilterDistrict('all'); }}>
-                        <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('सभी राज्य', 'All States')}</SelectItem>
-                          {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        options={[{ value: 'all', label: t('सभी राज्य', 'All States'), searchAlt: 'All States' }, ...stateOptions]}
+                        value={filterState}
+                        onValueChange={(v) => { setFilterState(v); setFilterDistrict('all'); }}
+                        placeholder={t('राज्य चुनें', 'Select State')}
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('जिला', 'District')}</label>
-                      <Select value={filterDistrict} onValueChange={setFilterDistrict}>
-                        <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('सभी जिले', 'All Districts')}</SelectItem>
-                          {availableDistricts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        options={[{ value: 'all', label: t('सभी जिले', 'All Districts'), searchAlt: 'All Districts' }, ...availableDistricts.map(d => ({ value: d, label: d }))]}
+                        value={filterDistrict}
+                        onValueChange={setFilterDistrict}
+                        placeholder={t('जिला चुनें', 'Select District')}
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('भूमि प्रकार', 'Land Type')}</label>
-                      <Select value={filterLandType} onValueChange={setFilterLandType}>
-                        <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('सभी प्रकार', 'All Types')}</SelectItem>
-                          <SelectItem value="irrigated"><span className="flex items-center gap-1"><Droplets className="h-3 w-3" />{t('सिंचित', 'Irrigated')}</span></SelectItem>
-                          <SelectItem value="non-irrigated"><span className="flex items-center gap-1"><Sun className="h-3 w-3" />{t('गैर-सिंचित', 'Non-Irrigated')}</span></SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        options={[{ value: 'all', label: t('सभी प्रकार', 'All Types'), searchAlt: 'All Types' }, ...landTypeOptions]}
+                        value={filterLandType}
+                        onValueChange={setFilterLandType}
+                        placeholder={t('प्रकार चुनें', 'Select Type')}
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -358,17 +355,11 @@ const BuyerLanding = () => {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">{t('राज्य', 'Preferred State')}</label>
-                    <Select value={form.state} onValueChange={(v) => setForm({ ...form, state: v, district: '' })}>
-                      <SelectTrigger><SelectValue placeholder={t('राज्य चुनें', 'Select state')} /></SelectTrigger>
-                      <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <SearchableSelect options={stateOptions} value={form.state} onValueChange={(v) => setForm({ ...form, state: v, district: '' })} placeholder={t('राज्य चुनें', 'Select state')} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">{t('जिला', 'Preferred District')}</label>
-                    <Select value={form.district} onValueChange={(v) => setForm({ ...form, district: v })} disabled={!form.state}>
-                      <SelectTrigger><SelectValue placeholder={t('जिला चुनें', 'Select district')} /></SelectTrigger>
-                      <SelectContent>{formDistricts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <SearchableSelect options={formDistricts.map(d => ({ value: d, label: d }))} value={form.district} onValueChange={(v) => setForm({ ...form, district: v })} disabled={!form.state} placeholder={t('जिला चुनें', 'Select district')} />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('इकाई चुनें', 'Select Unit')}</label>
