@@ -213,10 +213,6 @@ const PrivatePropertyView = () => {
                   { icon: Tag, label: t('भूमि प्रकार', 'Land Type'), value: property.land_type === 'irrigated' ? t('सिंचित', 'Irrigated') : t('गैर-सिंचित', 'Non-Irrigated') },
                   { icon: FileText, label: t('खसरा नंबर', 'Khasra'), value: property.khasra_number },
                   { icon: Tag, label: t('श्रेणी', 'Category'), value: property.category },
-                  { icon: User, label: t('मालिक', 'Owner'), value: property.owner_name },
-                  { icon: Phone, label: t('फोन', 'Phone'), value: property.owner_phone },
-                  { icon: User, label: t('प्रकार', 'Type'), value: property.owner_type === 'owner' ? t('मालिक', 'Owner') : t('ब्रोकर', 'Broker') },
-                  { icon: CalendarDays, label: t('पोस्ट', 'Posted'), value: new Date(property.created_at).toLocaleDateString() },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-2">
                     <item.icon className="h-4 w-4 text-primary mt-0.5" />
