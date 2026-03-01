@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { states } from '@/data/mockProperties';
+import { getRajasthanDistricts, getTehsilsForDistrict } from '@/data/rajasthanData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
@@ -40,7 +41,18 @@ const PostProperty = () => {
     ownerType: 'owner', ownerName: '', ownerPhone: '',
   });
 
-  const update = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const update = (key: string, value: any) => {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'state') { next.district = ''; next.tehsil = ''; }
+      if (key === 'district') { next.tehsil = ''; }
+      return next;
+    });
+  };
+
+  const isRajasthan = form.state === 'राजस्थान';
+  const districtOptions = useMemo(() => isRajasthan ? getRajasthanDistricts() : [], [isRajasthan]);
+  const tehsilOptions = useMemo(() => (isRajasthan && form.district) ? getTehsilsForDistrict(form.district) : [], [isRajasthan, form.district]);
 
   if (!user) {
     return (
@@ -124,8 +136,26 @@ const PostProperty = () => {
                     <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>{t('जिला', 'District')}</Label><Input value={form.district} onChange={(e) => update('district', e.target.value)} /></div>
-                <div><Label>{t('तहसील', 'Tehsil')}</Label><Input value={form.tehsil} onChange={(e) => update('tehsil', e.target.value)} /></div>
+                <div><Label>{t('जिला', 'District')}</Label>
+                  {isRajasthan ? (
+                    <Select value={form.district} onValueChange={(v) => update('district', v)}>
+                      <SelectTrigger><SelectValue placeholder={t('जिला चुनें', 'Select District')} /></SelectTrigger>
+                      <SelectContent>{districtOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={form.district} onChange={(e) => update('district', e.target.value)} placeholder={t('जिला दर्ज करें', 'Enter district')} />
+                  )}
+                </div>
+                <div><Label>{t('तहसील', 'Tehsil')}</Label>
+                  {isRajasthan && tehsilOptions.length > 0 ? (
+                    <Select value={form.tehsil} onValueChange={(v) => update('tehsil', v)}>
+                      <SelectTrigger><SelectValue placeholder={t('तहसील चुनें', 'Select Tehsil')} /></SelectTrigger>
+                      <SelectContent>{tehsilOptions.map((th) => <SelectItem key={th} value={th}>{th}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={form.tehsil} onChange={(e) => update('tehsil', e.target.value)} placeholder={t('तहसील दर्ज करें', 'Enter tehsil')} />
+                  )}
+                </div>
                 <div><Label>{t('गाँव', 'Village')}</Label><Input value={form.village} onChange={(e) => update('village', e.target.value)} /></div>
               </div>
             )}
